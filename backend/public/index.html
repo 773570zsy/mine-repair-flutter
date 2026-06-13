@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>总调度室综合管理系统</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1d23">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--gold:#c8a04a;--gold-light:#e0c878;--copper:#b87333;--steel:#7a8a9a;--danger:#e05555;--warning:#d4a017;--success:#5a9e5f;--bg:#1a1d23;--surface:#242830;--surface2:#2a2e38;--border:#3a3f4a;--text:#d0d4dc;--text2:#9098a6}
+body{font-family:-apple-system,BlinkMacSystemFont,'Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse at 20% 50%,rgba(200,160,74,.04)0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(184,115,51,.04)0%,transparent 50%)}
+.topbar{background:linear-gradient(180deg,#2a2e38 0%,#1e2128 100%);border-bottom:1px solid var(--border);color:var(--text);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3);position:sticky;top:0;z-index:100}
+.topbar h1{font-size:18px;font-weight:700;letter-spacing:1px;background:linear-gradient(135deg,var(--gold-light),var(--copper));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.user-area{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2)}
+.user-area select{padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none}
+.btn{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;transition:all .2s;letter-spacing:.5px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.btn-p{background:linear-gradient(135deg,var(--gold),var(--copper));color:#1a1d23;font-weight:600}
+.btn-s{background:linear-gradient(135deg,#4a8f5a,#3d7349);color:#fff}
+.btn-d{background:linear-gradient(135deg,#c0392b,#96281b);color:#fff}
+.btn-o{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+.btn-o:hover{background:rgba(200,160,74,.1)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.layout{max-width:1200px;margin:0 auto;padding:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:border-color .2s}
+.card:hover{border-color:#4a4f5a}
+.card-title{font-size:16px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;color:var(--text)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.stat-item{text-align:center;padding:18px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;transition:all .2s;position:relative;overflow:hidden}
+.stat-item::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s}
+.stat-item:hover::before,.stat-item:hover::after{opacity:1}
+.stat-item:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.stat-num{font-size:30px;font-weight:800;color:var(--gold)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:6px;text-transform:uppercase;letter-spacing:1px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surface2);padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);font-weight:600;color:var(--text2);white-space:nowrap;letter-spacing:.5px;font-size:11px;text-transform:uppercase}
+td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:hover td{background:rgba(200,160,74,.04)}
+.tag{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap;letter-spacing:.5px}
+.t-pending{background:rgba(212,160,23,.15);color:var(--warning);border:1px solid rgba(212,160,23,.3)}
+.t-progress{background:rgba(122,138,154,.15);color:#a0b0c0;border:1px solid rgba(122,138,154,.3)}
+.t-done{background:rgba(90,158,95,.15);color:var(--success);border:1px solid rgba(90,158,95,.3)}
+.t-reject{background:rgba(224,85,85,.15);color:var(--danger);border:1px solid rgba(224,85,85,.3)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;margin-bottom:6px;font-weight:500;font-size:13px;color:var(--text2);letter-spacing:.5px}
+input,select,textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg);color:var(--text);transition:all .2s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,160,74,.12)}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+textarea{resize:vertical;min-height:80px}
+::placeholder{color:#5a5e68}
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:90%;max-width:550px;max-height:85vh;overflow:auto;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{padding:7px 16px;border-radius:20px;background:var(--surface2);color:var(--text2);font-size:13px;cursor:pointer;border:1px solid var(--border);transition:all .2s;white-space:nowrap}
+.tab:hover{border-color:var(--gold);color:var(--text)}
+.tab.active{background:linear-gradient(135deg,var(--gold),var(--copper));color:#1a1d23;border-color:transparent;font-weight:600}
+.empty{text-align:center;padding:50px 20px;color:var(--text2)}
+.order-no{font-family:'JetBrains Mono','Fira Code',monospace;font-weight:700;color:var(--gold-light)}
+.flex{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.timeline{border-left:2px solid var(--border);padding-left:18px;margin-left:8px}
+.tl-item{padding:8px 0;position:relative}
+.tl-item::before{content:'';position:absolute;left:-24px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--border);border:2px solid var(--surface)}
+.tl-item:last-child::before{background:var(--gold);box-shadow:0 0 8px rgba(200,160,74,.4)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.quiz-modal{max-width:560px;padding:0;overflow:hidden;background:var(--surface);border-radius:14px}
+.quiz-progress-bar{width:100%;height:4px;background:var(--surface2)}
+.quiz-progress-fill{height:100%;background:linear-gradient(to right,var(--gold),var(--copper));transition:width .3s ease}
+.quiz-body{padding:24px}
+.quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.quiz-question{font-size:16px;font-weight:600;color:var(--text);line-height:1.6;margin-bottom:20px}
+.quiz-options{display:flex;flex-direction:column;gap:10px}
+.quiz-opt{padding:14px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .2s;font-size:14px;color:var(--text)}
+.quiz-opt:hover{border-color:var(--gold);background:rgba(200,160,74,.06)}
+.quiz-selected{border-color:var(--gold)!important;background:rgba(200,160,74,.12)!important;box-shadow:0 0 0 1px var(--gold)}
+.q-opt-letter{width:28px;height:28px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.quiz-selected .q-opt-letter{background:var(--gold);color:#1a1d23}
+.quiz-footer{text-align:right;margin-top:20px}
+.quiz-btn{padding:12px 32px;font-size:15px;border-radius:8px}
+.like-btn{background:transparent;border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:14px;cursor:pointer;font-size:12px;transition:all .2s}
+.like-btn:hover{border-color:var(--primary);color:var(--primary)}
+.like-btn.liked{background:rgba(200,160,74,.12);border-color:var(--gold);color:var(--gold)}
+.quiz-result-top{text-align:center;padding:30px 20px}
+.radio-pill-group{display:flex;gap:10px;flex-wrap:wrap}
+.radio-pill{display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .2s;flex:1;text-align:center;justify-content:center;min-width:120px}
+.radio-pill:hover{border-color:var(--gold);color:var(--text)}
+.radio-pill.active{border-color:var(--gold);background:rgba(200,160,74,.12);color:var(--gold);font-weight:600;box-shadow:0 0 0 1px var(--gold)}
+.upload-btn:hover{border-color:var(--gold)!important;background:rgba(200,160,74,.06)!important;color:var(--text)!important}
+/* 通知面板 */
+.notif-panel{position:fixed;right:16px;width:380px;max-width:92vw;z-index:2000;animation:notifIn .2s ease}
+.notif-panel-inner{max-height:420px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.55)}
+.notif-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);border-radius:12px 12px 0 0;z-index:2}
+.notif-header b{font-size:15px}
+.notif-empty{padding:32px 16px;text-align:center;color:var(--text2);font-size:14px}
+.notif-item{display:block;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;text-decoration:none;color:inherit;width:100%}
+.notif-item:last-child{border-bottom:none;border-radius:0 0 12px 12px}
+.notif-item:hover{background:rgba(200,160,74,.08)}
+.notif-item:active{background:rgba(200,160,74,.15)}
+.notif-item.unread{background:rgba(200,160,74,.04)}
+.notif-item.unread:hover{background:rgba(200,160,74,.12)}
+.notif-item-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.notif-item-icon{flex-shrink:0;font-size:18px;width:24px;text-align:center}
+.notif-item-title{flex:1;font-weight:600;font-size:14px;line-height:1.3}
+.notif-item-time{flex-shrink:0;font-size:11px;color:var(--text2);white-space:nowrap}
+.notif-item-body{font-size:12px;color:var(--text2);line-height:1.4;margin-left:32px}
+.notif-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:6px;flex-shrink:0}
+@keyframes notifIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+@media(max-width:768px){
+  .row2,.row3,.grid-3{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .topbar h1{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar{padding:6px 10px;position:sticky;top:0}
+  .layout{padding:8px}
+  .card{padding:10px;margin-bottom:8px;overflow:auto}
+  .modal{width:98%;padding:14px;max-width:98%}
+  .btn{padding:10px 14px;font-size:14px}
+  table{font-size:11px;min-width:600px}
+  th,td{padding:5px 7px}
+  .stat-num{font-size:20px}
+  .stat-item{padding:12px 8px}
+  .stat-label{font-size:10px}
+  .card{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .flex{flex-wrap:wrap;gap:6px}
+  .order-no{font-size:11px}
+  input,select,textarea{font-size:16px;padding:8px 10px}
+  #liveClock{display:none}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🛠️ 总调度室综合管理系统 <span id="liveClock" style="font-size:14px;margin-left:12px;color:var(--gold);font-family:monospace">--:--:--</span></h1>
+  <div class="user-area" id="userArea" style="display:none">
+    <span id="notifyBell" style="cursor:pointer;position:relative;margin-right:10px;font-size:20px" onclick="toggleNotifPanel()" title="通知">🔔<span id="notifyBadge" style="position:absolute;top:-6px;right:-10px;background:var(--danger);color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;display:none;align-items:center;justify-content:center;padding:0 3px;line-height:18px">0</span></span>
+    <span id="currentUser"></span>
+
+    <button class="btn btn-sm btn-o" onclick="changePassword()" style="color:var(--text);border-color:var(--border);margin-right:4px">修改密码</button>
+    <button class="btn btn-sm btn-o" onclick="doLogout()" style="color:var(--text);border-color:var(--border)">退出</button>
+  </div>
+</div>
+<div id="notifPanel" class="notif-panel" style="display:none">
+  <div class="notif-panel-inner"></div>
+</div>
+<div id="app">
+  <div id="loginPage" class="modal-mask">
+    <div class="modal" style="text-align:center">
+      <h2 style="margin-bottom:8px">🛠️</h2>
+      <h2>总调度室综合管理系统</h2>
+      <p style="color:var(--text2);margin:8px 0 24px">请输入手机号登录</p>
+      <div class="form-group"><input id="loginPhone" placeholder="手机号" /></div>
+      <div class="form-group"><input id="loginPwd" type="password" placeholder="请输入密码" /></div>
+      <button class="btn btn-p" style="width:100%" onclick="doLogin()">登录</button>
+      <p style="text-align:right;margin-top:10px"><a style="color:var(--text2);font-size:12px;cursor:pointer" onclick="changePwdAtLogin()">修改密码</a></p>
+    </div>
+  </div>
+  <div id="mainPage" style="display:none"></div>
+</div>
+
+<script>
+
+// ==================== 核心框架：全局变量 / 工具 / 登录 / 模态框 ====================
+
+// HTML 转义 — 全局 XSS 防护
+function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');}
+
+let TOKEN='',USER=null,LAST_DEPTS=[];
+const API='/api',ROLE_MAP={driver:'驾驶员',repair_shop:'修理厂',leader:'科级审批',admin:'管理员',safety_officer:'安全员',dispatcher:'车辆调度员',applicant:'用车申请人'};
+const STATUS_MAP={pending_accept:'待接单',pending_quote:'待报价',pending_approval:'待审批',approved:'已通过',rejected:'已驳回',repairing:'维修中',completed:'待验收',accepted:'已完成',cancelled:'已取消'};
+const ST_TAG={pending_accept:'t-pending',pending_quote:'t-pending',pending_approval:'t-reject',approved:'t-progress',rejected:'t-reject',repairing:'t-progress',completed:'t-done',accepted:'t-done'};
+const LEVEL_MAP={high:'高位',mid:'中位',low:'低位'},APPEAR_MAP={normal:'正常',damaged:'有损坏',dirty:'需清洁'},TIRE_MAP={normal:'正常',worn:'磨损',damaged:'损坏'};
+
+function toast(m,t){var b=document.createElement('div');b.style.cssText='position:fixed;top:16px;right:16px;z-index:9999;padding:14px 24px;border-radius:8px;color:#fff;font-weight:600;font-size:15px;animation:slideIn .3s ease;max-width:350px;box-shadow:0 8px 24px rgba(0,0,0,.4);';b.style.background=t==='error'?'linear-gradient(135deg,#c0392b,#96281b)':'linear-gradient(135deg,#4a8f5a,#3d7349)';b.textContent=(t==='error'?'✕ ':'✓ ')+m;document.body.appendChild(b);setTimeout(function(){b.style.opacity='0';b.style.transition='opacity .3s';setTimeout(function(){b.remove()},300)},2000)}
+
+function actionName(a){var m={accepted_order:"修理厂接单",quote_submitted:"提交报价",approved:"审批通过",rejected:"驳回",accepted_and_quoted:"接单并报价",department_approved:"部门审批通过",department_rejected:"部门驳回",progress:"维修进度",progress_update:"维修进度",completed:"维修完成",accepted:"验收通过",urgent:"标记加急"};return m[a]||a}
+async function api(url,opts){
+  opts=opts||{};
+  var hdr={'Content-Type':'application/json'};
+  if(TOKEN)hdr['Authorization']='Bearer '+TOKEN;
+  var r=await fetch(API+url,{headers:hdr,method:opts.method||'GET',body:opts.data?JSON.stringify(opts.data):undefined});
+  var d=await r.json();
+  if(d.code===401){doLogout();return null}
+  if(d.code!==200){alert(d.msg||'操作失败');return null}
+  return d.data;
+}
+
+// ===== 登录 =====
+async function doLogin(){
+  var ph=document.getElementById('loginPhone').value.trim();
+  var pw=document.getElementById('loginPwd').value.trim();
+  if(!ph)return alert('请输入手机号');
+  var d=await api('/auth/login',{method:'POST',data:{phone:ph,password:pw||'123456'}});
+  if(!d)return;
+  TOKEN=d.token;USER=d.user;
+  localStorage.setItem('mp_token',TOKEN);localStorage.setItem('mp_user',JSON.stringify(USER));
+  document.getElementById('loginPage').style.display='none';
+  document.getElementById('mainPage').style.display='';
+  document.getElementById('userArea').style.display='';
+  document.getElementById('currentUser').textContent=USER.name+'（'+ROLE_MAP[USER.role]+'）';
+  if(Notification&&Notification.permission==='default')Notification.requestPermission();
+  renderPage();updateClock();pollNotifications();
+}
+function doLogout(){TOKEN='';USER=null;localStorage.clear();document.getElementById('loginPage').style.display='';document.getElementById('mainPage').style.display='none';document.getElementById('userArea').style.display='none'}
+function changePwdAtLogin(){
+  var ph=document.getElementById('loginPhone').value.trim();if(!ph)return alert('请先输入手机号');
+  var old=prompt('请输入原密码（默认123456）：');if(old===null)return;
+  var nw=prompt('请输入新密码（至少4位）：');if(!nw||nw.length<4)return alert('新密码至少4位');
+  fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,password:old||'123456'})}).then(function(r){return r.json()}).then(function(d){
+    if(d.code!==200)return alert('原密码错误');
+    return fetch('/api/admin/change-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+d.data.token},body:JSON.stringify({old_pwd:old||'123456',new_pwd:nw})})
+  }).then(function(r){return r.json()}).then(function(){alert('密码修改成功，请使用新密码登录')})
+}
+function changePassword(){
+  var old=prompt('请输入原密码（默认123456）：');if(old===null)return;
+  var nw=prompt('请输入新密码（至少4位）：');if(!nw||nw.length<4)return alert('新密码至少4位');
+  api('/admin/change-password',{method:'POST',data:{old_pwd:old,new_pwd:nw}}).then(function(){alert('密码修改成功请重新登录');doLogout()})
+}
+async function downloadXLSX(url,body,filename){
+  try {
+    var resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},body:JSON.stringify(body)});
+    if(!resp.ok){var t=await resp.text();if(t.startsWith('{')){var j=JSON.parse(t);alert(j.msg||'导出失败')}else{alert('导出失败')}return}
+    var blob=await resp.blob();
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename+'.xlsx';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){alert('导出失败: '+e.message)}
+}
+
+// ===== 通知 =====
+var NOTIF=[],NOTIF_UNREAD=0;
+var NOTIF_TYPE_ICON={hazard_assigned:'⚠',hazard_completed:'✅',hazard_verified:'✅',hazard_rejected:'❌',assessment_new:'📋',quote_pending:'💰',quote_approved:'✅',quote_rejected:'❌',new_order:'🔧',order_accepted:'📦',order_urgent:'⚡',repair_completed:'✅'};
+var NOTIF_LINK={hazard_assigned:'hazard',hazard_completed:'hazard',hazard_verified:'hazard',hazard_rejected:'hazard',assessment_new:'assessment'};
+async function pollNotifications(){
+  if(!TOKEN||!USER)return;
+  try{var d=await api('/notifications');if(!d)return;NOTIF=d.list||[];NOTIF_UNREAD=d.unread||0}catch(e){}
+  var badge=document.getElementById('notifyBadge');if(badge){if(NOTIF_UNREAD>0){badge.textContent=NOTIF_UNREAD>99?'99+':NOTIF_UNREAD;badge.style.display='flex'}else{badge.style.display='none'}}
+}setInterval(pollNotifications,15000);
+function toggleNotifPanel(){
+  var p=document.getElementById('notifPanel');
+  if(p.style.display==='block'){closeNotifPanel();return}
+  // 动态计算位置：topbar底部 + 8px间距
+  var topbar=document.querySelector('.topbar');
+  var top=topbar?topbar.getBoundingClientRect().bottom+8:60;
+  p.style.top=top+'px';p.style.display='block';
+  var inner=p.querySelector('.notif-panel-inner');
+  if(!NOTIF.length){
+    inner.innerHTML='<div class="notif-empty">🔔<br>暂无通知</div>';
+  }else{
+    inner.innerHTML='<div class="notif-header"><b>通知</b><span style="font-size:12px;color:var(--gold)">'+NOTIF_UNREAD+'条未读</span><button class="btn btn-sm btn-o" onclick="markAllRead()">全部已读</button></div>'
+    +NOTIF.slice(0,20).map(function(n){
+      var icon=NOTIF_TYPE_ICON[n.type]||'📌';var unread=n.is_read?'':' unread';
+      return '<div class="notif-item'+unread+'" onclick="openNotif(\''+n.type+'\','+n.id+','+(n.order_id||0)+')"><div class="notif-item-head">'+(n.is_read?'':'<span class="notif-dot"></span>')+'<span class="notif-item-icon">'+icon+'</span><span class="notif-item-title">'+n.title+'</span><span class="notif-item-time">'+n.created_at.slice(0,16)+'</span></div><div class="notif-item-body">'+n.content+'</div></div>';
+    }).join('')
+  }
+  // 点空白处关闭（用mousedown比click更可靠）
+  setTimeout(function(){
+    document.addEventListener('mousedown',closeNotifOutside,true);
+  },50);
+}
+function closeNotifPanel(){
+  document.getElementById('notifPanel').style.display='none';
+  document.removeEventListener('mousedown',closeNotifOutside,true);
+}
+function closeNotifOutside(e){
+  var p=document.getElementById('notifPanel');if(!p||p.style.display!=='block')return;
+  if(!p.contains(e.target)&&e.target.id!=='notifyBell'&&!document.getElementById('notifyBell').contains(e.target)){
+    closeNotifPanel();
+  }
+}
+function openNotif(type,id,orderId){
+  closeNotifPanel();
+  api('/notifications/'+id+'/read',{method:'PUT'});
+  if(type==='hazard_assigned'||type==='hazard_completed')showHazardList();
+  else if(type==='assessment_new'){if(typeof showAssessmentList==='function')showAssessmentList()}
+  else if(type==='repair_completed'&&orderId&&typeof showOrderDetail==='function')showOrderDetail(orderId);
+  else if(orderId&&typeof showOrderDetail==='function')showOrderDetail(orderId);
+  else renderPage()
+}
+function markAllRead(){api('/notifications/read-all',{method:'PUT'});NOTIF_UNREAD=0;NOTIF=NOTIF.map(function(n){n.is_read=1;return n});document.getElementById('notifyBadge').style.display='none';toggleNotifPanel()}
+
+// ===== 路由 =====
+function renderPage(){
+  var r=USER.role||getRole();
+  if(r==='driver')renderDriver();else if(r==='repair_shop')renderShop();
+  else if(r==='leader')renderLeader();else if(r==='admin')renderAdmin();
+  else if(r==='safety_officer')renderSafetyOfficer();else if(r==='dispatcher')renderDispatcher();else if(r==='applicant')renderApplicant();
+}
+function getRole(){return USER?USER.role:'driver'}
+
+// ===== 弹窗组件 =====
+function showModal(title,content,onOk){var mask=document.createElement('div');mask.className='modal-mask';mask.innerHTML='<div class="modal"><h3 style="margin-bottom:16px">'+title+'</h3>'+content+'<div class="flex" style="justify-content:flex-end;margin-top:16px"><button class="btn" onclick="this.closest(\'.modal-mask\').remove()">取消</button><button class="btn btn-p" id="modalOkBtn">确认</button></div></div>';document.body.appendChild(mask);if(onOk){mask.querySelector('#modalOkBtn').onclick=async function(){var r=await onOk(mask);if(r!==false)mask.remove()}}mask.onclick=function(e){if(e.target===mask)mask.remove()}}
+
+// ===== 时钟 =====
+function updateClock(){var now=new Date(),t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');var el=document.getElementById('liveClock');if(el)el.textContent=t}
+setInterval(updateClock,1000);
+
+// ===== 启动 =====
+window._modalPhotos=[];var globalPhotoInput=document.createElement("input");globalPhotoInput.type="file";globalPhotoInput.accept="image/*";globalPhotoInput.multiple=true;globalPhotoInput.style.display="none";globalPhotoInput.onchange=async function(){if(!globalPhotoInput.files.length)return;var urls=[];for(var i=0;i<globalPhotoInput.files.length;i++){var fd=new FormData();fd.append("file",globalPhotoInput.files[i]);try{var r=await fetch("/api/upload/single",{method:"POST",headers:{"Authorization":"Bearer "+TOKEN},body:fd});var d=await r.json();if(d.code===200)urls.push(d.data.url)}catch(e){}}window._modalPhotos=window._modalPhotos.concat(urls)};document.body.appendChild(globalPhotoInput);function pickPhoto(){globalPhotoInput.click()}
+window.onload=function(){
+  var saved=localStorage.getItem('mp_token');
+  if(saved){TOKEN=saved;USER=JSON.parse(localStorage.getItem('mp_user'));document.getElementById('loginPage').style.display='none';document.getElementById('mainPage').style.display='';document.getElementById('userArea').style.display='';document.getElementById('currentUser').textContent=USER.name+'（'+ROLE_MAP[USER.role]+'）';renderPage();updateClock();pollNotifications()}
+};
+
+// ==================== 管理工具模块：车辆/用户/报表/配件/出勤/预警 ====================
+
+// ===== 车辆管理 =====
+function showAdminVehicles(){
+  api('/vehicles').then(function(vs){var t='<table><tr><th>内部编号</th><th>类型</th><th>型号</th><th>归属部门</th><th>小时单价</th><th>操作</th></tr>';
+    vs.forEach(function(v){t+='<tr><td><b>'+v.plate_number+'</b></td><td>'+(v.vehicle_type||'-')+'</td><td>'+(v.model||'-')+'</td><td>'+(v.archive_department||'总调度室')+'</td><td>¥'+(v.hourly_rate||0)+'/h</td><td><button class="btn btn-sm btn-s" onclick="editVehicle('+v.id+',\''+v.plate_number+'\',\''+(v.vehicle_type||'')+'\',\''+(v.model||'')+'\',\''+(v.archive_department||'总调度室')+'\','+(v.hourly_rate||0)+')">编辑</button> <button class="btn btn-sm btn-d" onclick="delVehicle('+v.id+',\''+v.plate_number+'\')">删除</button></td></tr>'});
+    t+='</table>';
+    showModal('车辆管理','<div class="row2"><div class="form-group"><label>内部编号</label><input id="vPlate" /></div><div class="form-group"><label>类型</label><input id="vType" /></div></div><div class="row2"><div class="form-group"><label>型号</label><input id="vModel" /></div><div class="form-group"><label>归属部门</label><select id="vDept"><option value="总调度室">总调度室</option><option value="西藏恒骏">西藏恒骏</option></select></div></div><div class="form-group"><label>小时单价(¥)</label><input id="vRate" type="number" value="0" step="0.01" /></div><button class="btn btn-p btn-sm" onclick="addSingleVehicle()" style="margin-bottom:12px">+ 添加车辆</button><div style="max-height:300px;overflow:auto">'+t+'</div>')
+  })
+}
+function addSingleVehicle(){var pn=document.getElementById('vPlate').value.trim();if(!pn)return alert('请输入编号');
+  api('/admin/vehicles/import',{method:'POST',data:{vehicles:[{plate_number:pn,vehicle_type:document.getElementById('vType').value.trim(),model:document.getElementById('vModel').value.trim(),department:document.getElementById('vDept').value,hourly_rate:parseFloat(document.getElementById('vRate').value)||0}]}}).then(function(){toast('添加成功');document.querySelectorAll('.modal-mask').forEach(function(m){m.remove()});renderPage()})
+}
+function editVehicle(id,plate,type,model,dept,rate){
+  var deptZS=dept==='总调度室'?'selected':'';
+  var deptHJ=dept==='西藏恒骏'?'selected':'';
+  showModal('编辑车辆 — '+plate,
+    '<div class="form-group"><label>内部编号</label><input id="evPlate" value="'+plate+'" /></div>'+
+    '<div class="row2"><div class="form-group"><label>类型</label><input id="evType" value="'+type+'" /></div><div class="form-group"><label>型号</label><input id="evModel" value="'+model+'" /></div></div>'+
+    '<div class="row2"><div class="form-group"><label>归属部门</label><select id="evDept"><option value="总调度室" '+deptZS+'>总调度室</option><option value="西藏恒骏" '+deptHJ+'>西藏恒骏</option></select></div><div class="form-group"><label>小时单价(¥/h)</label><input id="evRate" type="number" value="'+rate+'" step="0.01" /></div></div>',
+    async function(mask){
+      await api('/admin/vehicles/'+id,{method:'PUT',data:{
+        plate_number:document.getElementById('evPlate').value.trim(),
+        vehicle_type:document.getElementById('evType').value.trim(),
+        model:document.getElementById('evModel').value.trim(),
+        department:document.getElementById('evDept').value,
+        hourly_rate:parseFloat(document.getElementById('evRate').value)||0
+      }});
+      toast('更新成功');mask.remove();renderPage();
+    }
+  );
+}
+async function delVehicle(id,name){if(!confirm('确认删除'+name+'？'))return;var r=await api('/admin/vehicles/'+id,{method:'DELETE'});if(r){toast('已删除');renderPage()}}
+function showVehiclesByStatus(status,title){
+  api('/vehicles').then(function(vs){var list=vs.filter(function(v){return v.archive_department!=='西藏恒骏'});
+    if(status==='normal'){list=vs.filter(function(v){if(v.status!=='normal')return false;var cur=v.archive_current_hours||v.latest_end_hours||0,next=v.archive_next_maintenance||v.next_maintenance_hours||0;return next===0||cur<next})}
+    else if(status==='expired'){list=vs.filter(function(v){var cur=v.archive_current_hours||v.latest_end_hours||0,next=v.archive_next_maintenance||v.next_maintenance_hours||0;return next>0&&cur>=next})}
+    else if(status==='repairing'){list=vs.filter(function(v){return v.status==='repairing'})}
+    else if(status){list=vs.filter(function(v){return v.status===status})}
+    if(!list.length)return alert('暂无符合条件的车辆');
+    var rows='';list.forEach(function(v){var cur=v.archive_current_hours||v.latest_end_hours||0,next=v.archive_next_maintenance||v.next_maintenance_hours||0,rem=cur&&next?next-cur:999,st=rem<0?'<span class="tag t-reject">过期</span>':rem<50?'<span class="tag t-pending">即将保养</span>':'<span class="tag t-done">正常</span>';rows+='<tr><td><b>'+v.plate_number+'</b></td><td>'+(v.vehicle_type||'-')+'</td><td>'+(v.model||'-')+'</td><td>'+cur+'h</td><td>'+next+'h</td><td>'+st+'</td></tr>'});
+    showModal(title+' ('+list.length+'辆)','<table><tr><th>编号</th><th>类型</th><th>型号</th><th>工时</th><th>下次保养</th><th>状态</th></tr>'+rows+'</table>')
+  })
+}
+
+// ===== 人员管理 =====
+function showAdminUsers(){api('/admin/users').then(function(users){
+  api('/admin/repair-shops').then(function(shops){
+  api('/admin/departments').then(function(depts){
+  var deptOpts=(depts||[]).map(function(d){return '<option value="'+d.id+'">'+d.name+'</option>'}).join('');
+  var rows='';users.forEach(function(u){var shopName=(shops.find(function(s){return s.id===u.repair_shop_id})||{}).name||'';var belong=u.dept_name||shopName||'-';rows+='<tr><td>'+belong+'</td><td>'+u.name+'</td><td>'+(u.phone||'-')+'</td><td><span class="tag t-progress">'+ROLE_MAP[u.role]+'</span></td><td>'+(u.phone!=='15129505737'?'<button class="btn btn-sm btn-d" onclick="delUser('+u.id+',\''+u.name+'\')">删除</button>':'—')+'</td></tr>'});
+  showModal('人员管理','<div class="form-group"><div class="row2"><input id="addName" placeholder="姓名" /><input id="addPhone" placeholder="手机号" /></div><div class="row2" style="margin-top:6px"><select id="addRole"><option value="driver">驾驶员</option><option value="repair_shop">修理厂</option><option value="admin">管理员</option><option value="leader">科级审批</option><option value="safety_officer">安全员</option><option value="dispatcher">车辆调度员</option><option value="applicant">用车申请人</option></select><select id="addDept">'+deptOpts+'</select></div><div class="row2" style="margin-top:6px"><select id="addShop" style="display:none">'+shops.map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>'}).join('')+'</select></div><button class="btn btn-p btn-sm" style="margin-top:8px" onclick="doAddUser()">添加</button></div><table><tr><th>归属部门</th><th>姓名</th><th>手机号</th><th>角色</th><th>操作</th></tr>'+rows+'</table>');
+  document.getElementById('addRole').onchange=function(){document.getElementById('addShop').style.display=this.value==='repair_shop'?'':'none'};
+})})})}
+function doAddUser(){var name=document.getElementById('addName')?.value?.trim(),phone=document.getElementById('addPhone')?.value?.trim(),role=document.getElementById('addRole')?.value;if(!name)return alert('请填写姓名');var deptId=Number(document.getElementById('addDept')?.value)||null;var shopId=role==='repair_shop'?Number(document.getElementById('addShop')?.value)||null:null;api('/admin/users/add',{method:'POST',data:{name:name,phone:phone||'',role:role,department_id:deptId,repair_shop_id:shopId}}).then(function(){toast('添加成功');document.querySelectorAll('.modal-mask').forEach(function(m){m.remove()});renderPage()})}
+async function delUser(id,name){if(!confirm('确认删除"'+name+'"？'))return;await api('/admin/users/'+id,{method:'DELETE'});toast('已删除');document.querySelectorAll('.modal-mask').forEach(function(m){m.remove()});renderPage()}
+
+// ===== 修理厂管理 =====
+function showRepairShops(){api('/admin/repair-shops').then(function(s){
+  showModal('修理厂管理','<div class="form-group"><div class="row2"><input id="shopName" placeholder="名称" /><input id="shopContact" placeholder="联系人" /></div><div class="row2" style="margin-top:8px"><input id="shopPhone" placeholder="电话" /><input id="shopRemark" placeholder="分工说明" /></div><button class="btn btn-p btn-sm" style="margin-top:8px" onclick="doAddShop()">添加</button></div><table><tr><th>名称</th><th>联系人</th><th>电话</th><th>分工</th><th>操作</th></tr>'+s.map(function(x){return '<tr><td><b>'+x.name+'</b></td><td>'+(x.contact_person||'-')+'</td><td>'+(x.contact_phone||'-')+'</td><td>'+(x.remark||'-')+'</td><td><button class="btn btn-sm btn-d" onclick="delShop('+x.id+',\''+x.name+'\')">删除</button></td></tr>'}).join('')+'</table>')
+})}
+function doAddShop(){var n=document.getElementById('shopName')?.value?.trim();if(!n)return alert('请填写名称');api('/admin/repair-shops/add',{method:'POST',data:{name:n,contact_person:document.getElementById('shopContact')?.value||'',contact_phone:document.getElementById('shopPhone')?.value||'',remark:document.getElementById('shopRemark')?.value||''}}).then(function(){toast('添加成功');renderPage()})}
+async function delShop(id,name){if(!confirm('确认删除'+name+'？'))return;await api('/admin/repair-shops/'+id,{method:'DELETE'});toast('已删除');renderPage()}
+
+// ===== 费用报表 =====
+function showCostReport(){
+  var today=new Date().toISOString().slice(0,10),fm=new Date().toISOString().slice(0,7)+'-01';
+  api('/admin/repair-shops').then(function(s){var shopOpts='<option value="">全部</option>'+s.map(function(x){return '<option value="'+x.id+'">'+x.name+'</option>'}).join('');
+    var m=document.createElement('div');m.className='modal-mask';m.id='costReportModal';
+    m.innerHTML='<div class="modal" style="max-width:900px;max-height:90vh"><div class="flex" style="margin-bottom:12px"><h3>💰 维修费用报表</h3><button class="btn" onclick="document.getElementById(\'costReportModal\').remove()">✕ 关闭</button></div><div class="flex" style="margin:12px 0"><div class="form-group" style="margin:0"><label>开始</label><input id="crDateFrom" type="date" value="'+fm+'" /></div><div class="form-group" style="margin:0"><label>结束</label><input id="crDateTo" type="date" value="'+today+'" /></div><div class="form-group" style="margin:0"><label>修理厂</label><select id="crShop">'+shopOpts+'</select></div><div class="form-group" style="margin:0"><label>类型</label><select id="crType"><option value="">全部</option><option value="internal">内部</option></select></div><button class="btn btn-p" onclick="loadCostReport()">查询</button> <button class="btn btn-s btn-sm" onclick="exportCostCSV()">导出Excel</button></div><div id="costReportContent">点击查询加载数据</div></div>';
+    m.onclick=function(e){if(e.target===m)m.remove()};document.body.appendChild(m)
+  })
+}
+async function loadCostReport(){var df=document.getElementById('crDateFrom').value,dt=document.getElementById('crDateTo').value,sid=document.getElementById('crShop').value,dtp=document.getElementById('crType').value;var data=await api('/admin/cost-report?date_from='+df+'&date_to='+dt+(sid?'&repair_shop_id='+sid:'')+(dtp?'&dept_type='+dtp:''));if(!data)return;window._costData=data;
+  var html='<div style="margin-bottom:16px;background:rgba(200,160,74,.08);padding:12px;border-radius:8px"><b>汇总：</b>共 <b>'+data.summary.count+'</b> 单 | 总金额：<b style="color:var(--danger)">¥'+data.summary.totalAmount.toFixed(2)+'</b></div>';
+  html+='<table><tr><th>工单号</th><th>来源</th><th>设备</th><th>部门</th><th>修理厂</th><th>配件费</th><th>人工费</th><th>工时费</th><th>合计</th><th>审批日期</th></tr>';
+  data.items.forEach(function(o){var ph='-';try{var ps=JSON.parse(o.parts_list||'[]');if(ps.length)ph=ps.map(function(p){return p.name+'×'+p.qty+' ¥'+(p.qty*p.price)}).join('<br>')}catch(e){}html+='<tr><td class="order-no" style="font-size:12px">'+o.order_no+'</td><td><span class="tag '+(o.source==='内部'?'t-progress':'t-pending')+'">'+(o.source||'-')+'</span></td><td>'+(o.vehicle_name||o.plate_number||'-')+'</td><td>'+(o.dept_name||'总调度室')+'</td><td>'+(o.repair_shop_name||'-')+'</td><td>¥'+(o.parts_cost||0)+'</td><td>¥'+(o.labor_cost||0)+'</td><td>¥'+(o.hours_cost||0)+'</td><td style="font-weight:bold;color:var(--danger)">¥'+(o.quote_amount||0)+'</td><td style="font-size:12px">'+((o.approved_at||'').slice(0,10))+'</td></tr>'});
+  html+='</table>';document.getElementById('costReportContent').innerHTML=html
+}
+function exportCostCSV(){downloadXLSX('/api/admin/export-cost-xlsx',{date_from:document.getElementById('crDateFrom').value,date_to:document.getElementById('crDateTo').value,repair_shop_id:document.getElementById('crShop').value||undefined,dept_type:document.getElementById('crType').value||undefined},'维修费用报表')}
+
+// ===== 导出工单 =====
+function showExportOrders(){
+  var today=new Date().toISOString().slice(0,10);
+  api('/admin/repair-shops').then(function(shops){
+    var shopOpts='<option value="">全部</option>'+shops.map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>'}).join('');
+    var deptOpts='<option value="">全部</option>';
+    var m=document.createElement('div');m.className='modal-mask';
+    m.innerHTML='<div class="modal" style="max-width:900px;max-height:90vh"><div class="flex" style="margin-bottom:12px"><h3>📥 导出工单数据</h3><button class="btn" onclick="this.closest(\'.modal-mask\').remove()">✕ 关闭</button></div><div class="flex" style="margin:12px 0"><div class="form-group" style="margin:0"><label>开始</label><input id="exDateFrom" type="date" /></div><div class="form-group" style="margin:0"><label>结束</label><input id="exDateTo" type="date" value="'+today+'" /></div><div class="form-group" style="margin:0"><label>部门</label><select id="exDept">'+deptOpts+'</select></div><div class="form-group" style="margin:0"><label>修理厂</label><select id="exShop">'+shopOpts+'</select></div><div class="form-group" style="margin:0"><label>状态</label><select id="exStatus"><option value="">全部</option><option value="accepted">已完成</option><option value="completed">待验收</option><option value="repairing">维修中</option></select></div></div><div style="margin-bottom:12px"><button class="btn btn-p" onclick="loadExportData()">查询</button> <button class="btn btn-s btn-sm" onclick="downloadExportCSV()">导出Excel</button></div><div id="exportDataContent" style="max-height:50vh;overflow:auto">点击查询加载数据</div></div>';
+    m.onclick=function(e){if(e.target===m)m.remove()};document.body.appendChild(m)
+  })
+}
+async function loadExportData(){var p=new URLSearchParams(),df=document.getElementById('exDateFrom')?.value,dt=document.getElementById('exDateTo')?.value,did=document.getElementById('exDept')?.value,sid=document.getElementById('exShop')?.value,st=document.getElementById('exStatus')?.value;if(df)p.set('date_from',df);if(dt)p.set('date_to',dt);if(did)p.set('department_id',did);if(sid)p.set('repair_shop_id',sid);if(st)p.set('status',st);var data=await api('/admin/export-orders?'+p.toString());if(!data)return;window._exportData=data;
+  var html='<table><tr><th>工单号</th><th>车辆</th><th>部门</th><th>报修人</th><th>修理厂</th><th>故障</th><th>状态</th><th>配件费</th><th>人工费</th><th>工时费</th><th>合计</th><th>报修</th><th>接单</th><th>报价</th><th>维修</th><th>完工</th><th>验收</th></tr>';
+  data.forEach(function(o){html+='<tr><td style="font-size:11px">'+o.order_no+'</td><td>'+(o.plate_number||'')+'</td><td>'+(o.dept_name||'总调度室')+'</td><td>'+(o.driver_name||'')+'</td><td>'+(o.repair_shop_name||'')+'</td><td style="font-size:11px;max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+(o.fault_description||'').substring(0,30)+'</td><td>'+STATUS_MAP[o.status]+'</td><td>'+(o.parts_cost||0)+'</td><td>'+(o.labor_cost||0)+'</td><td>'+(o.hours_cost||0)+'</td><td style="font-weight:bold;color:var(--danger)">'+(o.quote_amount||0)+'</td><td style="font-size:11px">'+((o.report_date||'').slice(0,10))+'</td><td style="font-size:11px">'+((o.accept_date||'').slice(0,10))+'</td><td style="font-size:11px">'+((o.quote_date||'').slice(0,10))+'</td><td style="font-size:11px">'+((o.repair_start_date||'').slice(0,10))+'</td><td style="font-size:11px">'+((o.complete_date||'').slice(0,10))+'</td><td style="font-size:11px">'+((o.accept_vehicle_date||'').slice(0,10))+'</td></tr>'});
+  html+='</table>';document.getElementById('exportDataContent').innerHTML='<div style="margin-bottom:8px;color:var(--text2)">共 '+(data||[]).length+' 条</div>'+html
+}
+function downloadExportCSV(){downloadXLSX('/api/admin/export-orders-xlsx',{date_from:document.getElementById('exDateFrom')?.value||undefined,date_to:document.getElementById('exDateTo')?.value||undefined,department_id:document.getElementById('exDept')?.value||undefined,repair_shop_id:document.getElementById('exShop')?.value||undefined,status:document.getElementById('exStatus')?.value||undefined},'维修工单导出')}
+
+// ===== 配件管理 =====
+function showPartsManagement(){
+  Promise.all([api('/inspection/parts-list'),api('/inspection/parts/requisitions?pageSize=200'),api('/admin/config')]).then(function(r){var parts=r[0],reqs=r[1]||[],cfg=r[2]||{},threshold=parseInt(cfg.low_stock_threshold)||5;
+    var m=document.createElement('div');m.className='modal-mask';
+    m.innerHTML='<div class="modal" style="max-width:900px;max-height:90vh"><h3>🔧 配件管理 <button class="btn btn-sm btn-o" onclick="editStockThreshold()" style="margin-left:12px">⚙ 阈值:'+threshold+'个</button></h3><div class="row2"><div class="card"><div class="card-title">库存 <button class="btn btn-p btn-sm" onclick="showAddPart()">+添加</button></div><div style="max-height:300px;overflow:auto"><table><tr><th>名称</th><th>编码</th><th>库存</th><th>单位</th><th>单价(¥)</th></tr>'+(parts||[]).map(function(p){var low=p.quantity<threshold;return '<tr'+(low?' style="color:var(--danger);font-weight:600"':'')+'><td>'+(low?'⚠ ':'')+p.part_name+'</td><td>'+(p.part_code||'-')+'</td><td>'+p.quantity+'</td><td>'+p.unit+'</td><td>'+(p.unit_price||0)+'</td></tr>'}).join('')+'</table></div></div><div class="card"><div class="card-title">领用记录 <button class="btn btn-s btn-sm" onclick="exportPartsCSV()">导出Excel</button></div><div style="max-height:300px;overflow:auto"><table><tr><th>申请人</th><th>配件</th><th>车辆</th><th>数量</th><th>状态</th><th>时间</th><th>操作</th></tr>'+reqs.map(function(x){return '<tr><td>'+x.user_name+'</td><td>'+x.part_name+'</td><td>'+(x.plate_number||'-')+'</td><td>'+x.quantity+'</td><td><span class="tag '+(x.status==='completed'?'t-done':x.status==='rejected'?'t-reject':'t-pending')+'">'+(x.status==='pending'?'待确认':x.status==='completed'?'已出库':'已驳回')+'</span></td><td style="font-size:12px">'+(x.created_at||'').slice(0,16)+'</td><td>'+(x.status==='pending'?'<button class="btn btn-s btn-sm" onclick="confirmPart('+x.id+',event)">确认出库</button>':'')+'</td></tr>'}).join('')+'</table></div></div></div><div style="text-align:right;margin-top:12px"><button class="btn" onclick="this.closest(\'.modal-mask\').remove()">关闭</button></div></div>';
+    document.body.appendChild(m);window._partsReqData=reqs;m.onclick=function(e){if(e.target===m)m.remove()}
+  })
+}
+function showAddPart(){showModal('添加配件','<div class="row2"><div class="form-group"><label>名称</label><input id="pname" /></div><div class="form-group"><label>编码</label><input id="pcode" /></div></div><div class="row2"><div class="form-group"><label>数量</label><input id="pqty" type="number" value="0" /></div><div class="form-group"><label>单位</label><input id="punit" value="个" /></div></div><div class="row2"><div class="form-group"><label>单价(¥)</label><input id="pprice" type="number" step="0.01" value="0" /></div><div class="form-group"></div></div>',async function(mask){var n=document.getElementById('pname').value.trim();if(!n){alert('请填写名称');return false};await api('/inspection/parts/add',{method:'POST',data:{part_name:n,part_code:document.getElementById('pcode').value,quantity:+document.getElementById('pqty').value||0,unit:document.getElementById('punit').value||'个',unit_price:+document.getElementById('pprice').value||0}});toast('添加成功');mask.remove();renderPage()})}
+async function confirmPart(id,e){if(e)e.stopPropagation();if(!confirm('确认出库？'))return;await api('/inspection/parts/confirm/'+id,{method:'POST'});toast('已确认');renderPage()}
+function exportPartsCSV(){downloadXLSX('/api/inspection/export-parts-xlsx',{},'配件领用记录')}
+function showPartsRequisition(){Promise.all([api('/inspection/parts-list'),api('/vehicles')]).then(function(r){var parts=r[0],vs=r[1];if(!parts||!parts.length)return alert('暂无可用配件');var vOpts='<option value="">不指定车辆</option>'+vs.map(function(v){return '<option value="'+v.id+'">'+v.plate_number+'（'+(v.vehicle_type||'')+'）</option>'}).join('');showModal('配件领用申请','<div class="form-group"><label>配件</label><select id="reqPartId">'+parts.map(function(p){return '<option value="'+p.id+'">'+p.part_name+' '+(p.part_code||'')+'（库存:'+p.quantity+(p.unit||'个')+'）</option>'}).join('')+'</select></div><div class="form-group"><label>车辆</label><select id="reqVehicleId">'+vOpts+'</select></div><div class="form-group"><label>数量</label><input id="reqQty" type="number" value="1" /></div><div class="form-group"><label>原因</label><textarea id="reqReason"></textarea></div>',async function(mask){var pid=+document.getElementById('reqPartId').value,vid=+document.getElementById('reqVehicleId').value||null,qty=+document.getElementById('reqQty').value;if(qty<1){alert('数量至少为1');return false};var reason=document.getElementById('reqReason').value.trim();await api('/inspection/parts/requisition',{method:'POST',data:{part_id:pid,vehicle_id:vid,quantity:qty,reason:reason}});toast('申请已提交');mask.remove();renderPage()})})}
+
+// ===== 出勤报表 =====
+function showAttendanceReport(){api('/inspection/driver-list').then(function(ds){var dopts='<option value="">全部员工</option>'+ds.map(function(d){return '<option value="'+d.id+'">'+d.name+'</option>'}).join('');var m=new Date().toISOString().slice(0,7);showModal('📋 员工考勤','<div class="flex" style="margin-bottom:10px;gap:12px;align-items:flex-end"><div class="form-group" style="margin:0"><label>员工</label><select id="whDriver">'+dopts+'</select></div><div class="form-group" style="margin:0"><label>月份</label><input id="whMonth" type="month" value="'+m+'" /></div></div><div style="margin-bottom:8px"><button class="btn btn-p btn-sm" onclick="loadAttReport()">📊 查看考勤</button> <button class="btn btn-s btn-sm" onclick="expAttCalendar()">📥 导出考勤表</button> <button class="btn btn-o btn-sm" onclick="expOTSheet()">📥 导出加班表</button></div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">符号：X Y Z V G △ △/X △/Y △/Z △/V</div><div id="whContent"></div>',function(mask){mask.remove()})})}
+function expAttCalendar(){var did=document.getElementById('whDriver')?.value;var m=document.getElementById('whMonth').value;if(!m)return alert('请选择月份');var body={month:m};if(did)body.driver_id=Number(did);downloadXLSX('/api/inspection/export-attendance-xlsx',body,'考勤表_'+m)}
+function expOTSheet(){var did=document.getElementById('whDriver')?.value;var m=document.getElementById('whMonth').value;if(!m)return alert('请选择月份');var body={month:m};if(did)body.driver_id=Number(did);downloadXLSX('/api/inspection/export-overtime-xlsx',body,'加班记录_'+m)}
+function loadAttReport(){var m=document.getElementById('whMonth').value,did=document.getElementById('whDriver')?.value;if(!m)return alert('请选择月份');var qs='?month='+m;if(did)qs+='&driver_id='+did;api('/inspection/attendance/report'+qs).then(function(data){if(!data||!data.length){document.getElementById('whContent').innerHTML='<div class="empty">暂无考勤记录</div>';return}var html='<table><tr><th>姓名</th><th>日期</th><th>考勤</th><th>加班时段</th><th>加班小时</th><th>加班地点</th></tr>';data.forEach(function(x){var ot=x.overtime_hours>0?(x.overtime_start||'')+'→'+(x.overtime_end||'')+' ('+x.overtime_hours+'h)':'-';html+='<tr><td>'+x.driver_name+'</td><td>'+x.attendance_date+'</td><td><b>'+(x.attendance_symbol||'-')+'</b></td><td>'+ot+'</td><td>'+(x.overtime_hours||0)+'h</td><td>'+(x.overtime_location||'-')+'</td></tr>'});html+='</table>';document.getElementById('whContent').innerHTML=html})}
+
+// ===== 其他工具 =====
+function showTodayInspDetail(){var today=new Date().toISOString().slice(0,10);api('/inspection/all-records?date='+today+'&pageSize=200').then(function(rs){showModal('点检记录 - '+today,(rs||[]).length?'<table><tr><th>车辆</th><th>检查人</th><th>油位</th><th>水位</th><th>外观</th><th>轮胎</th><th>工时</th><th>备注</th><th>状态</th></tr>'+rs.map(function(x){return '<tr><td>'+x.plate_number+'</td><td>'+x.driver_name+'</td><td>'+(LEVEL_MAP[x.oil_level]||'-')+'</td><td>'+(LEVEL_MAP[x.coolant_level]||'-')+'</td><td>'+(APPEAR_MAP[x.appearance]||'-')+'</td><td>'+(TIRE_MAP[x.tire_condition]||'-')+'</td><td>'+(x.engine_hours||'-')+'h</td><td>'+(x.notes||'-')+'</td><td><span class="tag '+(x.overall_status==='normal'?'t-done':'t-reject')+'">'+(x.overall_status==='normal'?'正常':'异常')+'</span></td></tr>'}).join('')+'</table>':'<div class="empty">暂无记录</div>')})}
+function backupDB(){api('/admin/backup-db',{method:'POST'}).then(function(){toast('备份成功')})}
+function editEstimate(key,title){var cur=document.getElementById(key==='month_estimate'?'estMonth':'estYear')?.textContent.replace('¥','')||'0';var val=prompt('请输入'+title+'（元）',cur);if(val===null)return;api('/admin/config/save',{method:'POST',data:{config:{[key]:parseFloat(val)||0}}}).then(function(){document.getElementById(key==='month_estimate'?'estMonth':'estYear').textContent='¥'+val})}
+function renderMonthlyChart(data){if(!data||!data.length)return'<div class="card"><div class="card-title">📊 月度维修费用趋势</div><div class="empty" style="padding:30px">暂无数据</div></div>';var months=data.map(function(d){return d.month}).reverse(),costs=data.map(function(d){return d.total_cost}).reverse(),counts=data.map(function(d){return d.order_count}).reverse(),maxC=Math.max.apply(null,costs.concat([1]));var bars=months.map(function(m,i){var h=Math.max((costs[i]/maxC)*100,3);return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:50px"><div style="font-size:11px;color:var(--danger);font-weight:bold;margin-bottom:2px">¥'+(costs[i]/10000).toFixed(1)+'万</div><div style="width:36px;height:'+h+'px;background:linear-gradient(to top,#1677ff,#69b1ff);border-radius:4px 4px 0 0" title="'+m+': ¥'+costs[i]+' ('+counts[i]+'单)"></div><div style="font-size:10px;color:var(--text2);margin-top:4px">'+m.slice(2)+'</div></div>'}).join('');return'<div class="card"><div class="card-title">📊 月度维修费用趋势</div><div style="display:flex;align-items:flex-end;gap:8px;padding:10px 0;overflow-x:auto">'+bars+'</div></div>'}
+
+// ===== 预警系统 =====
+async function loadSystemAlerts(){var vs=await api('/vehicles'),parts=await api('/inspection/parts-list'),config=await api('/admin/config');var threshold=parseInt(config.low_stock_threshold)||5;var maintSoon=(vs||[]).filter(function(v){return v.archive_department!=='西藏恒骏'&&v.next_maintenance_hours&&v.latest_end_hours&&(v.next_maintenance_hours-v.latest_end_hours<50)});var kmSoon=(vs||[]).filter(function(v){return v.archive_department!=='西藏恒骏'&&v.archive_next_maintenance_km&&v.archive_current_km&&(v.archive_next_maintenance_km-v.archive_current_km<500)});var lowStock=(parts||[]).filter(function(p){return p.quantity<threshold});var html='';if(maintSoon.length)html+='<div style="color:var(--warning);margin-bottom:4px">🔧 '+maintSoon.length+'辆车工时即将到保养</div>';if(kmSoon.length)html+='<div style="color:var(--warning);margin-bottom:4px">🚛 '+kmSoon.length+'辆车公里即将到保养</div>';if(lowStock.length)html+='<div style="color:var(--danger);margin-bottom:4px">📦 '+lowStock.length+'种配件库存不足:</div>'+lowStock.map(function(p){return '<div style="color:var(--danger);font-size:12px;margin-left:20px;line-height:1.6">⚠ '+p.part_name+(p.part_code?' ('+p.part_code+')':'')+' — 剩余 <b>'+p.quantity+'</b> '+(p.unit||'个')+'</div>'}).join('');if(!html)html='<div style="color:var(--success)">✅ 系统正常，无预警</div>';html+='<div style="margin-top:6px"><button class="btn btn-sm btn-o" onclick="editStockThreshold()">设置阈值:'+threshold+'个</button></div>';var el=document.getElementById('sysAlerts');if(el)el.innerHTML=html;var me=document.getElementById('maintAlerts');if(me){var alerts=[];maintSoon.forEach(function(v){alerts.push(v.plate_number+'距保养仅剩'+(v.next_maintenance_hours-v.latest_end_hours)+'h')});kmSoon.forEach(function(v){alerts.push(v.plate_number+'距保养仅剩'+(v.archive_next_maintenance_km-v.archive_current_km)+'km')});me.innerHTML=alerts.length?'⚠ '+alerts.join('，'):''}}
+function editStockThreshold(){var v=prompt('设置库存预警阈值（当前：'+(parseInt((window._lastConfig||{}).low_stock_threshold)||5)+'个）',(parseInt((window._lastConfig||{}).low_stock_threshold)||5));if(v===null)return;api('/admin/config/save',{method:'POST',data:{config:{low_stock_threshold:parseInt(v)||5}}}).then(function(){toast('已设置');renderPage()})}
+
+// ==================== 维修模块：报修 / 报价 / 审批 ====================
+
+function showReport(){
+  Promise.all([api('/vehicles'), api('/repair/shops')]).then(function(results){
+    var vs=results[0], shops=results[1]||[];
+    var vOpts=vs.map(function(v){return '<option value="'+v.id+'">'+v.plate_number+'（'+(v.vehicle_type||'')+'）</option>'}).join('');
+    var sOpts='<option value="">不限（通知所有修理厂）</option>';
+    if(shops.length) sOpts+=shops.map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>'}).join('');
+    showModal('故障报修',
+      '<div class="form-group"><label>车辆</label><select id="rptVehicle">'+vOpts+'</select></div>'+
+      '<div class="form-group"><label>修理厂</label><select id="rptShop">'+sOpts+'</select></div>'+
+      '<div class="form-group"><label>故障描述</label><textarea id="rptDesc"></textarea></div>',
+    async function(mask){
+      var vid=+document.getElementById('rptVehicle').value;
+      var sid=+document.getElementById('rptShop').value||null;
+      var desc=document.getElementById('rptDesc').value.trim();
+      if(!desc){alert('请填写故障描述');return false}
+      await api('/repair/report',{method:'POST',data:{vehicle_id:vid,fault_description:desc,repair_shop_id:sid,fault_images:window._rptPhotoUrls||[]}});
+      toast('报修成功');mask.remove();renderPage()
+    })
+  })
+}
+async function showOrderDetail(id){
+  var data=await api('/repair/detail/'+id);if(!data)return;
+  var o=data.order,p=data.progress||[];
+  var tl=p.map(function(x){return '<div class="tl-item"><div><b>'+actionName(x.action)+'</b> <span style="color:var(--text2);font-size:11px">'+(x.created_at||'').slice(0,16)+'</span></div><div style="font-size:12px">'+(x.content||'')+' — '+(x.user_name||'')+'</div></div>'}).join('');
+  var m=document.createElement('div');m.className='modal-mask';
+  m.innerHTML='<div class="modal" style="max-width:600px"><div class="flex" style="margin-bottom:12px"><h3>工单详情</h3><button class="btn" onclick="this.closest(\'.modal-mask\').remove()">✕</button></div><div class="flex"><span class="order-no" style="font-size:16px">'+o.order_no+'</span>'+'<span class="tag '+ST_TAG[o.status]+'">'+STATUS_MAP[o.status]+'</span></div><div style="margin-top:10px;font-size:13px"><div><b>车辆：</b>'+o.plate_number+'（'+(o.vehicle_type||'')+'/'+(o.model||'-')+'）</div><div><b>报修部门：</b>'+(o.dept_name||'总调度室')+' | <b>报修人：</b>'+o.driver_name+' '+(o.driver_phone||'')+'</div><div><b>修理厂：</b>'+(o.repair_shop_name||'待接单')+'</div><div><b>故障描述：</b>'+(o.fault_description||'')+'</div>'+'<div class="fault-photos" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px"></div>'+'<script>setTimeout(function(){var imgs;try{imgs='+(o.fault_images||'[]')+'}catch(e){imgs=[]};if(imgs.length){var el=document.querySelector(".fault-photos");if(el){imgs.forEach(function(u){var i=document.createElement("img");i.src=u;i.style.cssText="width:60px;height:60px;object-fit:cover;border-radius:4px;margin:2px;cursor:pointer";i.onclick=function(){showFaultPhotos(imgs)};el.appendChild(i)})}}},200)<\/script>'+((o.quote_amount)?'<div style="margin-top:8px;padding:10px;background:rgba(200,160,74,.08);border-radius:6px"><b>报价：</b>¥'+o.quote_amount+'<br>'+(o.quote_detail||'')+'<br>预计'+(o.estimated_days||'?')+'天<br><span style="font-size:12px;color:var(--text2)">配件费: ¥'+(o.parts_cost||0)+' | 人工费: ¥'+(o.labor_cost||0)+' | 工时费: ¥'+(o.hours_cost||0)+'</span>'+'<div class="quote-dmg-photos" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px"></div>'+'<script>setTimeout(function(){var imgs;try{imgs='+(o.damage_photos||'[]')+'}catch(e){imgs=[]};if(imgs.length){var el=document.querySelector(".quote-dmg-photos");var lb=document.createElement("div");lb.textContent="🔧 损坏配件";lb.style.cssText="width:100%;font-size:11px;color:var(--text2);margin-bottom:2px";el.before(lb);imgs.forEach(function(u){var i=document.createElement("img");i.src=u;i.style.cssText="width:60px;height:60px;object-fit:cover;border-radius:4px;margin:2px;cursor:pointer;border:1px solid var(--border)";i.onclick=function(){showFaultPhotos(imgs)};el.appendChild(i)})}},200)<\/script>'+'<div class="quote-new-photos" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px"></div>'+'<script>setTimeout(function(){var imgs;try{imgs='+(o.new_photos||'[]')+'}catch(e){imgs=[]};if(imgs.length){var el=document.querySelector(".quote-new-photos");var lb=document.createElement("div");lb.textContent="🆕 新配件";lb.style.cssText="width:100%;font-size:11px;color:var(--text2);margin-bottom:2px";el.before(lb);imgs.forEach(function(u){var i=document.createElement("img");i.src=u;i.style.cssText="width:60px;height:60px;object-fit:cover;border-radius:4px;margin:2px;cursor:pointer;border:1px solid var(--border)";i.onclick=function(){showFaultPhotos(imgs)};el.appendChild(i)})}},200)<\/script>'+'</div>':'')+'</div>'+(o.status==='completed'?(USER.role==='driver'?'<div style="margin-top:12px;padding:12px;background:rgba(90,158,95,.1);border:1px solid var(--success);border-radius:8px;text-align:center"><p style="font-size:13px;color:var(--text2);margin-bottom:8px">维修已完工，请确认验收</p><button class="btn btn-s" style="font-size:16px;padding:10px 32px" onclick="acceptCompletedOrder('+o.id+')">✅ 验收通过</button></div>':(USER.role==='repair_shop'?'<div style="margin-top:12px;padding:12px;background:rgba(200,160,74,.08);border:1px solid var(--gold);border-radius:8px;text-align:center"><p style="font-size:13px;color:var(--text2);margin-bottom:8px">等待驾驶员验收</p><button class="btn btn-p btn-sm" onclick="notifyDriverAccept('+o.id+',\''+(o.driver_name||'驾驶员')+'\')">📢 通知驾驶员验收</button></div>':'')):'')+'<div class="card-title">进度</div><div class="timeline">'+(tl||'暂无')+'</div></div>';
+  m.onclick=function(e){if(e.target===m)m.remove()};document.body.appendChild(m)
+}
+async function acceptOrder(id){await api('/repair/accept-order/'+id,{method:'POST'});toast('已接单');renderPage()}
+async function showQuote(id,isReQuote){
+  // 驳回重报价：先获取旧报价数据回填
+  var prevData={};
+  if(isReQuote){
+    var detail=await api('/repair/detail/'+id);
+    if(detail&&detail.order){
+      var o=detail.order;
+      prevData.partsCost=o.parts_cost||0;
+      prevData.laborCost=o.labor_cost||0;
+      prevData.hoursCost=o.hours_cost||0;
+      prevData.quoteDetail=o.quote_detail||'';
+      prevData.estimatedDays=o.estimated_days||'';
+      try{prevData.partsList=JSON.parse(o.parts_list||'[]')}catch(e){prevData.partsList=[]}
+    }
+  }
+  var partsRows='';
+  var partsInit=prevData.partsList||[];
+  if(!partsInit.length)partsInit=[{name:'',qty:'',price:''}];
+  partsInit.forEach(function(p,i){
+    partsRows+='<div class="flex" style="margin-bottom:4px"><input id="partName'+i+'" placeholder="配件名称" style="flex:2" value="'+(p.name||'')+'" /><input id="partQty'+i+'" placeholder="数量" type="number" style="flex:1;margin:0 4px" value="'+(p.qty||'')+'" /><input id="partPrice'+i+'" placeholder="单价" type="number" style="flex:1" value="'+(p.price||'')+'" /></div>';
+  });
+  window._partRowCount=partsInit.length;
+  showModal((isReQuote?'重新报价':'提交报价'),'<div class="form-group"><label>配件清单</label><div id="partsContainer">'+partsRows+'</div><button class="btn btn-o btn-sm" onclick="addPartRow()" style="margin-top:6px">+ 添加配件</button></div><div class="row2"><div class="form-group"><label>配件总费用</label><input id="quoteParts" type="number" value="'+(prevData.partsCost||0)+'" onchange="updateQuoteTotal()" /></div><div class="form-group"><label>人工费</label><input id="quoteLabor" type="number" value="'+(prevData.laborCost||0)+'" onchange="updateQuoteTotal()" /></div></div><div class="row2"><div class="form-group"><label>工时费</label><input id="quoteHoursCost" type="number" value="'+(prevData.hoursCost||0)+'" onchange="updateQuoteTotal()" /></div><div class="form-group"><label>预计天数</label><input id="quoteDays" type="number" value="'+(prevData.estimatedDays||'')+'" /></div></div><div class="form-group"><label>合计报价</label><input id="quoteAmt" type="number" readonly style="font-size:20px;font-weight:bold;color:var(--danger)" /></div><div class="form-group"><label>报价说明</label><textarea id="quoteDetail">'+(prevData.quoteDetail||'')+'</textarea></div>',async function(mask){
+    var parts=[];var j=0;
+    while(document.getElementById('partName'+j)){var nm=document.getElementById('partName'+j).value.trim();var qt=+document.getElementById('partQty'+j).value||0;var pr=+document.getElementById('partPrice'+j).value||0;if(nm)parts.push({name:nm,qty:qt,price:pr});j++}
+    var pc=+document.getElementById('quoteParts').value||0;var lc=+document.getElementById('quoteLabor').value||0;var hc=+document.getElementById('quoteHoursCost').value||0;var amt=pc+lc+hc;
+    if(!amt){alert('请填写费用');return false}
+    await api('/repair/submit-quote/'+id,{method:'POST',data:{quote_amount:amt,parts_cost:pc,labor_cost:lc,hours_cost:hc,parts_list:parts,quote_detail:document.getElementById('quoteDetail').value,estimated_days:+document.getElementById('quoteDays').value||null}});
+    toast(isReQuote?'重新报价已提交':'报价已提交');mask.remove();renderPage()
+  });
+  // 初始化合计显示
+  setTimeout(function(){updateQuoteTotal()},100)
+}
+function addPartRow(){var i=window._partRowCount++;var d=document.createElement('div');d.className='flex';d.style.marginBottom='4px';d.innerHTML='<input id="partName'+i+'" placeholder="配件名称" style="flex:2" /><input id="partQty'+i+'" placeholder="数量" type="number" style="flex:1;margin:0 4px" /><input id="partPrice'+i+'" placeholder="单价" type="number" style="flex:1" />';document.getElementById('partsContainer').appendChild(d)}
+function updateQuoteTotal(){var p=+document.getElementById('quoteParts').value||0;var l=+document.getElementById('quoteLabor').value||0;var h=+document.getElementById('quoteHoursCost').value||0;document.getElementById('quoteAmt').value=p+l+h}
+function updateProgress(id){showModal('更新进度','<div class="form-group"><textarea id="progContent"></textarea></div>',async function(mask){var c=document.getElementById('progContent').value.trim();if(!c){alert('请填写');return false};await api('/repair/update-progress/'+id,{method:'POST',data:{content:c}});toast('已更新');mask.remove();renderPage()})}
+async function completeOrder(id){if(!confirm('确认完工？'))return;await api('/repair/complete/'+id,{method:'POST'});toast('已完工');renderPage()}
+async function approveOrder(id,approved){await api('/repair/approve/'+id,{method:'POST',data:{approved:approved}});toast(approved?'已通过':'已驳回');renderPage()}
+function showReject(id){showModal('驳回原因','<div class="form-group"><textarea id="rejectReason"></textarea></div>',async function(mask){var r=document.getElementById('rejectReason').value.trim();if(!r){alert('请填写');return false};await api('/repair/approve/'+id,{method:'POST',data:{approved:false,reject_reason:r}});toast('已驳回');mask.remove();renderPage()})}
+async function markUrgent(id){if(!confirm('标记为加急维修？'))return;await api('/repair/urgent/'+id,{method:'POST'});toast('已标记加急');renderPage()}
+async function acceptCompletedOrder(id){if(!confirm('确认验收通过？验收后工单完结。'))return;var r=await api('/repair/accept/'+id,{method:'POST'});if(r)toast('验收完成，工单已完结');renderPage()}
+async function notifyDriverAccept(id,name){if(!confirm('将通知'+(name||'驾驶员')+'尽快验收？'))return;await api('/repair/notify-accept/'+id,{method:'POST'});toast('已通知驾驶员验收')}
+
+// ==================== 点检模块 ====================
+
+function showInspection(tab){tab=tab||'morning';
+  Promise.all([api('/vehicles'),api('/inspection/driver-list')]).then(function(r){
+    var vs=r[0]||[],ds=r[1]||[];
+    var vOpts=vs.map(function(v){return '<option value="'+v.id+'">'+v.plate_number+'（'+(v.vehicle_type||'')+'）</option>'}).join('');
+    var dOpts=ds.map(function(d){return '<option value="'+d.id+'">'+d.name+(USER.id===d.id?'（本人）':'')+'</option>'}).join('');
+    var morningForm='<div class="form-group"><label>司机</label><select id="inspDriver">'+dOpts+'</select></div><div class="form-group"><label>车辆</label><select id="inspVehicle">'+vOpts+'</select></div><div class="row2"><div class="form-group"><label>机油液位</label><select id="inspOil"><option value="">请选择</option><option value="high">高位</option><option value="mid">中位</option><option value="low">低位</option></select></div><div class="form-group"><label>冷却液位</label><select id="inspCoolant"><option value="">请选择</option><option value="high">高位</option><option value="mid">中位</option><option value="low">低位</option></select></div></div><div class="row2"><div class="form-group"><label>外观</label><select id="inspAppear"><option value="">请选择</option><option value="normal">正常</option><option value="damaged">有损坏</option><option value="dirty">需清洁</option></select></div><div class="form-group"><label>轮胎</label><select id="inspTire"><option value="">请选择</option><option value="normal">正常</option><option value="worn">磨损</option><option value="damaged">损坏</option></select></div></div><div class="form-group"><label>随车九样物品</label><select id="inspToolkit"><option value="">请选择</option><option value="ok">齐全</option><option value="missing">缺失</option></select></div><div class="form-group"><label>整体状态</label><select id="inspStatus"><option value="normal">正常</option><option value="abnormal">异常</option></select></div><div class="form-group"><label>备注</label><textarea id="inspNotes"></textarea></div>';
+    var eveningForm='<div class="form-group"><label>司机</label><select id="inspDriver2">'+dOpts+'</select></div><div class="form-group"><label>车辆</label><select id="inspVehicle2">'+vOpts+'</select></div><div class="row2"><div class="form-group"><label>上班启动工时(h)</label><input id="inspStartH" type="number" step="0.1" /></div><div class="form-group"><label>下班停车工时(h)</label><input id="inspEndH" type="number" step="0.1" /></div></div><div class="row2"><div class="form-group"><label>开始公里数(km)</label><input id="inspStartKm" type="number" step="0.1" /></div><div class="form-group"><label>下班公里数(km)</label><input id="inspEndKm" type="number" step="0.1" /></div></div><div class="form-group"><label>加油数量(L)</label><input id="inspFuel" type="number" step="0.1" /></div><div class="form-group"><label>停车地点</label><input id="inspParking" /></div><div style="background:rgba(200,160,74,.1);border:1px solid var(--gold);border-radius:6px;padding:10px 14px;margin-top:8px;font-size:12px;color:var(--gold-light)">⚠ 温馨提示：下班请将车辆停在安全的地方，锁好门窗，并关闭电源。</div>';
+    var m=document.createElement('div');m.className='modal-mask';m.id='inspectionModal';
+    m.innerHTML='<div class="modal" style="max-width:550px"><div class="flex" style="margin-bottom:16px"><h3>每日点检</h3><span style="display:flex;gap:8px"><button class="tab '+(tab==='morning'?'active':'')+'" onclick="switchInspTab(\'morning\')">☀ 早检</button><button class="tab '+(tab==='evening'?'active':'')+'" onclick="switchInspTab(\'evening\')">🌙 晚检</button></span></div><div id="inspFormContent">'+(tab==='morning'?morningForm:eveningForm)+'</div><div style="text-align:right;margin-top:16px;display:flex;gap:10px;justify-content:flex-end"><button class="btn" onclick="document.getElementById(\'inspectionModal\').remove()">取消</button><button class="btn btn-p" id="inspSubmitBtn" onclick="submitInspection(\''+tab+'\')">提交'+(tab==='morning'?'早检':'晚检')+'</button></div></div>';
+    m.onclick=function(e){if(e.target===m)m.remove()};document.body.appendChild(m)
+  })
+}
+function switchInspTab(tab){document.getElementById('inspectionModal').remove();showInspection(tab)}
+async function submitInspection(tab){
+  var id=tab==='morning'?'inspDriver':'inspDriver2',vid=tab==='morning'?'inspVehicle':'inspVehicle2';
+  var driver_id=+document.getElementById(id)?.value||null,vehicle_id=+document.getElementById(vid)?.value||null;
+  if(!vehicle_id){alert('请选择车辆');return}
+  var label=tab==='morning'?'早检':'晚检';
+  if(tab==='morning'){
+    var d={vehicle_id:vehicle_id,driver_id:driver_id,oil_level:document.getElementById('inspOil').value,coolant_level:document.getElementById('inspCoolant').value,appearance:document.getElementById('inspAppear').value,tire_condition:document.getElementById('inspTire').value,toolkit_check:document.getElementById('inspToolkit').value,overall_status:document.getElementById('inspStatus').value,notes:document.getElementById('inspNotes')?.value?.trim()||''};
+    var r=await api('/inspection/morning-check',{method:'POST',data:d});if(r){toast('✓ '+label+'提交成功');document.getElementById('inspectionModal')?.remove();renderPage()}
+  }else{
+    var d2={vehicle_id:vehicle_id,driver_id:driver_id,start_hours:parseFloat(document.getElementById('inspStartH')?.value)||0,end_hours:parseFloat(document.getElementById('inspEndH')?.value)||0,start_km:parseFloat(document.getElementById('inspStartKm')?.value)||0,end_km:parseFloat(document.getElementById('inspEndKm')?.value)||0,fuel_amount:parseFloat(document.getElementById('inspFuel')?.value)||0,parking_location:document.getElementById('inspParking')?.value?.trim()||''};
+    var r2=await api('/inspection/evening-check',{method:'POST',data:d2});if(r2){toast('✓ '+label+'提交成功');document.getElementById('inspectionModal')?.remove();renderPage()}
+  }
+}
+
+// ==================== 点检详情查看（历史追溯 + 照片）====================
+async function showInspectionDetail(recordId) {
+  var records = await api('/inspection/all-records?pageSize=500');
+  var r = (records || []).find(function(x) { return x.id === recordId; });
+  if (!r) { alert('记录不存在'); return; }
+  var isMorning = r.start_hours === undefined || r.start_hours === null;
+  var lm = { normal: '正常', low: '偏低', empty: '需补充' };
+  var h = '<div style="font-size:14px">';
+  h += '<div><b>车辆：</b>' + r.plate_number + '（' + (r.vehicle_type || '') + '）</div>';
+  h += '<div><b>检查人：</b>' + (r.driver_name || '-') + ' | <b>日期：</b>' + (r.inspection_date || '-') + '</div>';
+  h += '<div><b>类型：</b>' + (isMorning ? '☀ 早检' : '🌙 晚检') + '</div>';
+  if (isMorning) {
+    h += '<div style="margin-top:6px"><b>机油：</b>' + (lm[r.oil_level] || '-') + ' | <b>冷却液：</b>' + (lm[r.coolant_level] || '-') + '</div>';
+    h += '<div><b>外观：</b>' + (r.appearance === 'damaged' ? '有损坏' : r.appearance === 'dirty' ? '需清洁' : '正常') + ' | <b>轮胎：</b>' + (r.tire_condition === 'worn' ? '磨损' : r.tire_condition === 'damaged' ? '损坏' : '正常') + '</div>';
+    h += '<div><b>随车九样：</b>' + (r.toolkit_check === 'ok' ? '✅ 齐全' : '❌ 缺失') + ' | <b>整体状态：</b>' + (r.overall_status === 'normal' ? '正常' : '异常') + '</div>';
+    if (r.engine_hours) h += '<div><b>发动机工时：</b>' + r.engine_hours + ' h</div>';
+  } else {
+    h += '<div style="margin-top:6px"><b>工时：</b>' + (r.start_hours || 0) + 'h → ' + (r.end_hours || 0) + 'h = ' + ((r.end_hours || 0) - (r.start_hours || 0)).toFixed(1) + 'h</div>';
+    if (r.start_km || r.current_km) h += '<div><b>公里：</b>' + (r.start_km || 0) + 'km → ' + (r.current_km || 0) + 'km = ' + ((r.current_km || 0) - (r.start_km || 0)).toFixed(1) + 'km</div>';
+    h += '<div><b>加油：</b>' + (r.fuel_amount || 0) + ' L | <b>停车：</b>' + (r.parking_location || '-') + '</div>';
+  }
+  if (r.notes) h += '<div style="margin-top:6px"><b>备注：</b>' + r.notes + '</div>';
+  if (r.abnormal_desc) h += '<div style="margin-top:6px;padding:8px;background:rgba(224,85,85,.1);border-radius:4px"><b>⚠ 异常说明：</b>' + r.abnormal_desc + '</div>';
+  // 照片追溯
+  var imgs = []; try { imgs = JSON.parse(r.photos || '[]'); } catch(e) {}
+  if (imgs.length) {
+    h += '<div style="margin-top:10px"><b>📸 现场照片：</b></div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">';
+    imgs.forEach(function(u, i) {
+      h += '<img src="' + u + '" style="width:80px;height:80px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--border)" onclick="event.stopPropagation();showFaultPhotos(' + JSON.stringify(imgs) + ',' + i + ')" />';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="margin-top:10px;color:var(--text2);font-size:12px">📷 无现场照片</div>';
+  }
+  h += '</div>';
+  showModal('📋 点检详情', h);
+}
+
+// ==================== 考勤/加班模块 ====================
+
+function loadAttendanceCard(){
+  api('/inspection/attendance/today').then(function(r){var rec=r||{},sym=rec.attendance_symbol||'';
+    var attOpts=['','X','Y','Z','V','G','△','△/X','△/Y','△/Z','△/V'].map(function(s){return '<option value="'+s+'"'+(s===sym?' selected':'')+'>'+(s||'请选择')+'</option>'}).join('');
+    var ae=document.getElementById('attCard');
+    if(sym){ae.innerHTML='<div class="tag t-done" style="font-size:14px">✓ 已提交: '+sym+'</div>'}
+    else{ae.innerHTML='<select id="attSymbol" style="margin-bottom:8px">'+attOpts+'</select><br><button class="btn btn-p btn-sm" onclick="submitAttendance()">提交考勤</button>'}
+    var oe=document.getElementById('otCard');
+    if(rec.overtime_hours){var oI='✓ 已提交: '+rec.overtime_hours+'h';if(rec.overtime_start)oI+='<br><small style="color:var(--text2)">'+rec.overtime_start+' → '+rec.overtime_end+'</small>';oe.innerHTML='<div class="tag t-done" style="font-size:14px">'+oI+'</div>'}
+    else{oe.innerHTML='<div class="row2" style="margin-bottom:8px"><input id="otStart" type="time" value="'+(rec.overtime_start||'')+'" /><input id="otEnd" type="time" value="'+(rec.overtime_end||'')+'" /></div><input id="otLocation" placeholder="加班地点" value="'+(rec.overtime_location||'')+'" style="margin-bottom:8px" /><br><button class="btn btn-p btn-sm" onclick="submitAttendance()">提交加班</button>'}
+  })
+}
+function submitAttendance(){
+  var sym=document.getElementById('attSymbol')?.value||'',otS=document.getElementById('otStart')?.value||'',otE=document.getElementById('otEnd')?.value||'',loc=document.getElementById('otLocation')?.value?.trim()||'';
+  api('/inspection/attendance/submit',{method:'POST',data:{attendance_symbol:sym,overtime_start:otS,overtime_end:otE,overtime_location:loc}}).then(function(){toast('提交成功');loadAttendanceCard()})
+}
+
+// ==================== 每日一测模块 ====================
+
+function showQuiz(){api('/quiz/today').then(function(d){if(!d)return;if(d.done){showQuizReview(d.result)}else{startQuiz(d.questions)}})}
+function startQuiz(qs){
+  var i=0,answers=[],selectedOpts=[]; // selectedOpts 记录每题选中的选项索引
+  var el=document.createElement('div');el.className='modal-mask';
+  var catIcons={'安全操作':'🔧','安全红线':'🚫','公司制度':'📋','十大禁令':'⛔','道路交通':'🚛','高原知识':'🏔','发动机理论':'⚙','电气系统':'⚡','液压系统':'💧','变速箱':'🔗','底盘':'🛞','轮胎':'⚫','故障判断':'🔍','日常保养':'🛢','工程机械':'🏗','矿山安全':'⛏','安全基础':'📖','四受控':'🔄','八大危险作业':'⚠'};
+  function showQ(){
+    if(i>=qs.length){submitQuiz(answers,el);return}
+    var q=qs[i],opts='',labels=['A','B','C','D'];
+    try{JSON.parse(q.options).forEach(function(o,j){
+      var selClass=selectedOpts[i]===j?' quiz-selected':'';
+      opts+='<div class="quiz-opt'+selClass+'" id="opt'+j+'" onclick="window._selOpt('+j+')"><span class="q-opt-letter">'+labels[j]+'</span> '+o+'</div>'
+    })}catch(e){}
+    var barW=((i+1)/qs.length*100).toFixed(0);
+    var prevBtn=i>0?'<button class="btn btn-o btn-sm" onclick="window._prevQ()">◀ 上一题</button>':'<span></span>';
+    var nextLabel=i<qs.length-1?'下一题 ▶':'✓ 提交';
+    el.innerHTML='<div class="modal quiz-modal" style="max-width:560px;padding:0;overflow:hidden;border-radius:14px"><div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:'+barW+'%"></div></div><div class="quiz-body"><div class="quiz-header"><span class="tag t-progress" style="font-size:11px">'+(catIcons[q.category]||'📝')+' '+q.category+'</span><span style="color:var(--text2);font-size:12px">'+(i+1)+'/'+qs.length+'</span></div><div class="quiz-question">'+q.question+'</div><div class="quiz-options">'+opts+'</div><div class="quiz-footer" style="display:flex;justify-content:space-between;align-items:center">'+prevBtn+'<button class="btn btn-p quiz-btn" onclick="window._nextQ()">'+nextLabel+'</button></div></div></div>';
+    el.onclick=function(e){if(e.target===el)el.remove()};document.body.appendChild(el);
+  }
+  window._selOpt=function(j){
+    selectedOpts[i]=j;
+    document.querySelectorAll('.quiz-opt').forEach(function(o){o.classList.remove('quiz-selected')});
+    var opt=document.getElementById('opt'+j);if(opt)opt.classList.add('quiz-selected');
+  };
+  window._nextQ=function(){
+    answers[i]={question_id:qs[i].id,user_answer:selectedOpts[i]>=0?String.fromCharCode(65+selectedOpts[i]):''};
+    i++;showQ();
+  };
+  window._prevQ=function(){
+    // 保存当前题的选择
+    answers[i]={question_id:qs[i].id,user_answer:selectedOpts[i]>=0?String.fromCharCode(65+selectedOpts[i]):''};
+    if(i>0){i--;showQ()}
+  };
+  showQ();
+}
+function submitQuiz(as,el){api('/quiz/submit',{method:'POST',data:{answers:as}}).then(function(r){
+  el.remove();
+  var pct=Math.round(r.score/r.total*100),emoji=pct===100?'🌟':pct>=80?'🎉':pct>=60?'👍':'💪',bg=pct===100?'linear-gradient(135deg,#c8a04a,#b87333)':pct>=80?'linear-gradient(135deg,#4a8f5a,#3d7349)':pct>=60?'linear-gradient(135deg,#1677ff,#0958d9)':'linear-gradient(135deg,#c0392b,#96281b)';
+  var re=document.createElement('div');re.className='modal-mask';
+  re.innerHTML='<div class="modal" style="max-width:400px;text-align:center;padding:0;overflow:hidden;border-radius:14px"><div style="background:'+bg+';padding:30px 20px"><div style="font-size:48px">'+emoji+'</div><div style="font-size:42px;font-weight:900;color:#fff;margin:8px 0">'+r.score+'<span style="font-size:20px">/'+r.total+'</span></div><div style="color:rgba(255,255,255,.8);font-size:14px">正确率 '+pct+'%</div></div><div style="padding:20px"><button class="btn btn-p" onclick="this.closest(\'.modal-mask\').remove();showLeaderboard()">🏆 查看排行榜</button><br><button class="btn btn-o btn-sm" style="margin-top:8px" onclick="this.closest(\'.modal-mask\').remove()">关闭</button></div></div>';
+  re.onclick=function(e){if(e.target===re)re.remove()};document.body.appendChild(re)
+})}
+// 回顾已答题目
+function showQuizReview(result){
+  var pct=Math.round(result.score/result.total*100),emoji=pct===100?'🌟':pct>=80?'🎉':pct>=60?'👍':'💪',bg=pct===100?'linear-gradient(135deg,#c8a04a,#b87333)':pct>=80?'linear-gradient(135deg,#4a8f5a,#3d7349)':pct>=60?'linear-gradient(135deg,#1677ff,#0958d9)':'linear-gradient(135deg,#c0392b,#96281b)';
+  var items='',labels=['A','B','C','D'];
+  try{
+    var pastAnswers=JSON.parse(result.answers||'[]');
+    pastAnswers.forEach(function(a,j){
+      var userLabel=a.user_answer||'未答';
+      var correctLabel=a.correct_answer;
+      var isCorrect=a.correct;
+      items+='<div style="padding:12px;margin-bottom:8px;background:'+(isCorrect?'rgba(90,158,95,.06)':'rgba(224,85,85,.06)')+';border-radius:8px;border-left:3px solid '+(isCorrect?'var(--success)':'var(--danger)')+'">'+
+        '<div style="font-weight:600;margin-bottom:6px">'+(j+1)+'. '+a.question+'</div>'+
+        '<div>你的答案：<b style="color:'+(isCorrect?'var(--success)':'var(--danger)')+'">'+(a.user_answer||'未答')+(userLabel!=='未答'?' . '+labels[userLabel.charCodeAt(0)-65]:'')+'</b></div>'+
+        (!isCorrect?'<div>正确答案：<b style="color:var(--success)">'+correctLabel+' . '+labels[correctLabel.charCodeAt(0)-65]+'</b></div>':'')+
+        (a.explanation?'<div style="margin-top:4px;color:var(--text2);font-size:12px">💡 '+a.explanation+'</div>':'')+
+      '</div>';
+    });
+  }catch(e){items='<div class="empty">暂无答题记录</div>'}
+  var re=document.createElement('div');re.className='modal-mask';
+  re.innerHTML='<div class="modal" style="max-width:520px;padding:0;overflow:hidden;border-radius:14px"><div style="background:'+bg+';padding:24px 20px;text-align:center"><div style="font-size:40px">'+emoji+'</div><div style="font-size:36px;font-weight:900;color:#fff;margin:4px 0">'+result.score+'<span style="font-size:18px">/'+result.total+'</span></div><div style="color:rgba(255,255,255,.8);font-size:13px">'+result.quiz_date+' · 正确率 '+pct+'% · 今日已完成</div></div><div style="max-height:50vh;overflow-y:auto;padding:16px 20px">'+items+'</div><div style="text-align:center;padding:0 20px 16px;display:flex;gap:10px;justify-content:center"><button class="btn btn-p btn-sm" onclick="this.closest(\'.modal-mask\').remove();showLeaderboard()">🏆 排行榜</button><button class="btn btn-o btn-sm" onclick="this.closest(\'.modal-mask\').remove()">关闭</button></div></div>';
+  re.onclick=function(e){if(e.target===re)re.remove()};document.body.appendChild(re)
+}
+function showLeaderboard(){api('/quiz/leaderboard').then(function(d){if(!d)return;var rows='';(d.leaderboard||[]).forEach(function(r,i){var medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';var likedClass=r.liked_by_me?'liked':'';rows+='<tr><td>'+medal+' '+(i+1)+'</td><td>'+r.name+'</td><td>'+r.total_score+'分</td><td>'+r.days+'天</td><td><button class="btn btn-sm like-btn '+likedClass+'" onclick="toggleQuizLike('+r.user_id+',this)" title="'+(r.liked_by_me?'已点赞':'点赞')+'">👍 '+(r.likes||0)+'</button></td></tr>'});showModal('🏆 本月排行榜','<table><tr><th>排名</th><th>姓名</th><th>总分</th><th>天数</th><th>点赞</th></tr>'+rows+'</table>')})}
+function toggleQuizLike(targetUserId,btn){var month=new Date().toISOString().slice(0,7);api('/quiz/like',{method:'POST',data:{target_user_id:targetUserId,month:month}}).then(function(r){if(r){var cnt=parseInt(btn.textContent.match(/\d+/)?.[0]||'0')||0;btn.textContent='👍 '+(r.liked?cnt+1:cnt-1);if(r.liked){btn.classList.add('liked');btn.title='已点赞'}else{btn.classList.remove('liked');btn.title='点赞'}}})}
+
+// ==================== 在编车辆档案模块 ====================
+
+// 档案列表（卡片网格）
+async function showVehicleArchiveList() {
+  var res = await api('/vehicle-archives/list');
+  var list = res.data || [];
+  if (!list.length) {
+    showModal('在编车辆档案',
+      '<div class="empty" style="padding:40px;text-align:center">暂无在编车辆档案</div>' +
+      ((USER.role === 'admin' || USER.role === 'dispatcher')
+        ? '<div style="text-align:center;margin-top:12px"><button class="btn btn-p" onclick="showVehicleArchiveForm()">+ 添加车辆档案</button></div>'
+        : '')
+    );
+    return;
+  }
+
+  var cards = '';
+  list.forEach(function(v) {
+    var photos = [];
+    try { photos = JSON.parse(v.photos || '[]'); } catch(e) { photos = []; }
+    var thumb = photos.length > 0
+      ? '<img src="' + photos[0] + '" style="width:100%;height:140px;object-fit:cover;border-radius:8px 8px 0 0" />'
+      : '<div style="width:100%;height:140px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--border)">🚛</div>';
+
+    var curH = Number(v.current_hours) || 0;
+    var next = Number(v.next_maintenance_hours) || 0;
+    var remain = curH && next ? next - curH : 999;
+    var maintSt, maintCls;
+    if (!next) { maintSt = '未设置'; maintCls = 't-done'; }
+    else if (remain < 0) { maintSt = '保养过期'; maintCls = 't-reject'; }
+    else if (remain <= 50) { maintSt = '即将保养'; maintCls = 't-pending'; }
+    else { maintSt = '正常'; maintCls = 't-done'; }
+
+    // 公里保养状态
+    var curKm = Number(v.current_km) || 0;
+    var nextKm = Number(v.next_maintenance_km) || 0;
+    var remainKm = curKm && nextKm ? nextKm - curKm : 999;
+    var kmSt = '';
+    if (nextKm > 0) {
+      kmSt = remainKm < 0 ? ' <span class="tag t-reject" style="font-size:10px">km过期</span>' :
+             remainKm <= 500 ? ' <span class="tag t-pending" style="font-size:10px">km即将</span>' : '';
+    }
+
+    // 底部显示：工时或公里（优先显示设置了保养的那个）
+    var bottomInfo = '';
+    if (next > 0) {
+      bottomInfo = '<span style="color:var(--text2)">工时: ' + curH + 'h</span><span class="tag ' + maintCls + '">' + maintSt + '</span>';
+    }
+    if (nextKm > 0) {
+      bottomInfo = (bottomInfo ? bottomInfo + ' ' : '') + '<span style="color:var(--text2)">km: ' + curKm + '</span>' + kmSt;
+    }
+    if (!bottomInfo) {
+      bottomInfo = '<span style="color:var(--text2)">工时: ' + curH + 'h</span><span class="tag t-done">未设置</span>';
+    }
+
+    cards += '<div class="card" style="padding:0;cursor:pointer;overflow:hidden;transition:transform .2s" onmouseenter="this.style.transform=\'translateY(-4px)\'" onmouseleave="this.style.transform=\'\'" onclick="showVehicleArchiveDetail(\'' + v.plate_number + '\')">' +
+      thumb +
+      '<div style="padding:14px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:18px;font-weight:700;color:var(--text)">' + v.plate_number + '</span>' + (v.department && v.department !== '总调度室' ? '<span style="font-size:10px;background:#f0f0f0;color:#666;padding:2px 6px;border-radius:4px">' + v.department + '</span>' : '') + '</div>' +
+        '<div style="font-size:13px;color:var(--text2);margin-top:4px">' + (v.vehicle_type || '-') + ' / ' + (v.model || '-') + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px">' +
+          bottomInfo +
+        '</div>' +
+        (v.driver_name ? '<div style="font-size:11px;color:var(--text2);margin-top:4px">驾驶员: ' + v.driver_name + '</div>' : '') +
+      '</div></div>';
+  });
+
+  var addBtn = (USER.role === 'admin' || USER.role === 'dispatcher')
+    ? '<div style="margin-bottom:16px"><button class="btn btn-p" onclick="showVehicleArchiveForm()">+ 添加车辆档案</button></div>'
+    : '';
+
+  showModal('在编车辆档案 (' + list.length + '辆)',
+    addBtn + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;max-height:70vh;overflow:auto">' + cards + '</div>'
+  );
+}
+
+// 车辆详情（全屏弹窗，顶部照片轮播）
+function showVehicleArchiveDetail(plate) {
+  api('/vehicle-archives/' + plate).then(function(res) {
+    var v = res.data;
+    if (!v) { toast('档案不存在'); return; }
+
+    var photos = [];
+    try { photos = JSON.parse(v.photos || '[]'); } catch(e) { photos = []; }
+
+    // 照片轮播HTML
+    var photoHtml = '';
+    if (photos.length > 0) {
+      photoHtml = '<div id="vaDetailPhotos" style="position:relative;width:100%;height:300px;background:#000;overflow:hidden;border-radius:12px;margin-bottom:20px">' +
+        photos.map(function(url, i) {
+          return '<img src="' + url + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .3s;opacity:' + (i === 0 ? '1' : '0') + ';pointer-events:' + (i === 0 ? 'auto' : 'none') + '" data-va-idx="' + i + '" />';
+        }).join('') +
+        (photos.length > 1
+          ? '<div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:2">' +
+              photos.map(function(_, i) {
+                return '<span class="va-dot" style="width:8px;height:8px;border-radius:50%;background:' + (i === 0 ? '#fff' : 'rgba(255,255,255,.4)') + ';cursor:pointer" onclick="event.stopPropagation();vaSlideTo(' + i + ')"></span>';
+              }).join('') +
+            '</div>' +
+            '<div style="position:absolute;top:50%;left:8px;transform:translateY(-50%);z-index:2;font-size:28px;color:#fff;cursor:pointer;background:rgba(0,0,0,.5);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation();vaSlide(-1)">‹</div>' +
+            '<div style="position:absolute;top:50%;right:8px;transform:translateY(-50%);z-index:2;font-size:28px;color:#fff;cursor:pointer;background:rgba(0,0,0,.5);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center" onclick="event.stopPropagation();vaSlide(1)">›</div>'
+          : '') +
+        '</div>';
+    } else {
+      photoHtml = '<div style="width:100%;height:200px;background:var(--surface2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--border);margin-bottom:20px">🚛 暂无外观照片</div>';
+    }
+
+    var curH = Number(v.current_hours) || 0;
+    var next = Number(v.next_maintenance_hours) || 0;
+    var remain = curH && next ? next - curH : 999;
+    var maintSt = !next ? '未设置' : remain < 0 ? '保养过期' : remain <= 50 ? '即将保养' : '正常';
+    var maintColor = !next ? 'var(--text2)' : remain < 0 ? 'var(--danger)' : remain <= 50 ? 'var(--warning)' : 'var(--success)';
+
+    // 公里保养状态
+    var curKm = Number(v.current_km) || 0;
+    var nextKm = Number(v.next_maintenance_km) || 0;
+    var remainKm = curKm && nextKm ? nextKm - curKm : 999;
+    var kmSt = !nextKm ? '未设置' : remainKm < 0 ? '保养过期' : remainKm <= 500 ? '即将保养' : '正常';
+    var kmColor = !nextKm ? 'var(--text2)' : remainKm < 0 ? 'var(--danger)' : remainKm <= 500 ? 'var(--warning)' : 'var(--success)';
+
+    var rows = [
+      ['内部编号', v.plate_number],
+      ['所属部门', v.department || '总调度室'],
+      ['类型', v.vehicle_type || '-'],
+      ['具体型号', v.model || '-'],
+      ['出厂日期', v.manufacture_date || '-'],
+      ['购买日期', v.purchase_date || '-'],
+      ['车辆识别代码(VIN)', v.vin || '-'],
+      ['保险到期日', v.insurance_expiry || '-'],
+      ['年检日期', v.inspection_date || '-'],
+      ['保养间隔', (v.maintenance_interval || 500) + 'h'],
+      ['下次保养工时', (v.next_maintenance_hours || 0) + 'h'],
+      ['当前工时', curH + 'h <span style="color:' + maintColor + ';font-weight:600">(' + maintSt + ')</span>'],
+      ['保养间隔(km)', (v.maintenance_interval_km || 0) + 'km'],
+      ['下次保养公里', (v.next_maintenance_km || 0) + 'km'],
+      ['当前公里', curKm + 'km <span style="color:' + kmColor + ';font-weight:600">(' + kmSt + ')</span>'],
+      ['行为监控', v.has_behavior_monitor ? '有' : '无'],
+      ['360环影', v.has_360_camera ? '有' : '无'],
+      ['当前驾驶员', v.driver_name || '无'],
+      ['车辆状态', v.vehicle_status === 'repairing' ? '<span style="color:var(--warning)">维修中</span>' : '<span style="color:var(--success)">正常</span>']
+    ];
+
+    var infoTable = '<table style="width:100%">' +
+      rows.map(function(r) {
+        return '<tr><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);font-size:14px;white-space:nowrap;width:140px">' + r[0] + '</td><td style="padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);font-size:15px">' + r[1] + '</td></tr>';
+      }).join('') +
+      '</table>';
+
+    var btns = '';
+    if (USER.role === 'admin' || USER.role === 'dispatcher') {
+      btns += '<button class="btn btn-p btn-sm" style="margin-right:8px" onclick="showVehicleArchiveForm(\'' + v.plate_number + '\')">编辑</button>';
+      if (v.maintenance_interval > 0) {
+        btns += '<button class="btn btn-s btn-sm" style="margin-right:8px" onclick="maintenanceDoneVehicle(\'' + v.plate_number + '\')">已保养 (+' + (v.maintenance_interval || 500) + 'h)</button>';
+      }
+      if (v.maintenance_interval_km > 0) {
+        btns += '<button class="btn btn-s btn-sm" style="margin-right:8px" onclick="maintenanceDoneVehicleKm(\'' + v.plate_number + '\')">已保养 (+' + (v.maintenance_interval_km || 10000) + 'km)</button>';
+      }
+    }
+    btns += '<button class="btn btn-sm btn-o" onclick="showVehicleArchiveList()">返回列表</button>';
+
+    var html = '<div style="max-width:800px;margin:0 auto">' +
+      photoHtml +
+      infoTable +
+      '<div style="margin-top:20px;text-align:center">' + btns + '</div>' +
+      '</div>';
+
+    showModal(v.plate_number + ' — 车辆档案详情', html);
+
+    // 存储当前照片数据供滑动使用
+    window._vaPhotos = photos;
+  });
+}
+
+// 照片滑动
+function vaSlide(dir) {
+  var photos = window._vaPhotos || [];
+  if (!photos.length) return;
+  var imgs = document.querySelectorAll('#vaDetailPhotos img');
+  var current = 0;
+  imgs.forEach(function(img, i) {
+    if (img.style.opacity === '1') current = i;
+  });
+  var next = (current + dir + photos.length) % photos.length;
+  vaSlideTo(next);
+}
+function vaSlideTo(idx) {
+  var imgs = document.querySelectorAll('#vaDetailPhotos img');
+  var dots = document.querySelectorAll('.va-dot');
+  imgs.forEach(function(img, i) {
+    img.style.opacity = i === idx ? '1' : '0';
+    img.style.pointerEvents = i === idx ? 'auto' : 'none';
+  });
+  dots.forEach(function(d, i) {
+    d.style.background = i === idx ? '#fff' : 'rgba(255,255,255,.4)';
+  });
+}
+
+// 录入/编辑表单
+function showVehicleArchiveForm(plate) {
+  var isEdit = !!plate;
+  var title = isEdit ? '编辑车辆档案 — ' + plate : '添加在编车辆档案';
+
+  if (isEdit) {
+    api('/vehicle-archives/' + plate).then(function(res) {
+      var v = res.data;
+      if (!v) { toast('档案不存在'); return; }
+      renderForm(title, v);
+    });
+  } else {
+    renderForm(title, null);
+  }
+}
+
+function renderForm(title, v) {
+  var isEdit = !!v;
+  var plateDisabled = isEdit ? 'disabled' : '';
+  var plateVal = isEdit ? v.plate_number : '';
+  var deptVal = isEdit ? (v.department || '总调度室') : '总调度室';
+  var typeVal = isEdit ? (v.vehicle_type || '') : '';
+  var modelVal = isEdit ? (v.model || '') : '';
+  var pdateVal = isEdit ? (v.purchase_date || '') : '';
+  var mdateVal = isEdit ? (v.manufacture_date || '') : '';
+  var vinVal = isEdit ? (v.vin || '') : '';
+  var insVal = isEdit ? (v.insurance_expiry || '') : '';
+  var inspVal = isEdit ? (v.inspection_date || '') : '';
+  var intervVal = isEdit ? (v.maintenance_interval || 500) : 500;
+  var nextVal = isEdit ? (v.next_maintenance_hours || 0) : 0;
+  var intervKmVal = isEdit ? (v.maintenance_interval_km || 0) : 0;
+  var nextKmVal = isEdit ? (v.next_maintenance_km || 0) : 0;
+  var curKmVal = isEdit ? (v.current_km || 0) : 0;
+  var deptZS = deptVal === '总调度室' ? 'selected' : '';
+  var deptHJ = deptVal === '西藏恒骏' ? 'selected' : '';
+  var bmYes = isEdit && v.has_behavior_monitor ? 'selected' : '';
+  var bmNo = isEdit && !v.has_behavior_monitor ? 'selected' : '';
+  var camYes = isEdit && v.has_360_camera ? 'selected' : '';
+  var camNo = isEdit && !v.has_360_camera ? 'selected' : '';
+
+  // 当前照片预览
+  var photos = [];
+  try { if (isEdit) photos = JSON.parse(v.photos || '[]'); } catch(e) { photos = []; }
+  var photoPreviewHtml = '<div id="vaPhotoPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
+    photos.map(function(url) {
+      return '<div style="position:relative"><img src="' + url + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px" /><span style="position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px" onclick="vaRemovePhoto(\'' + url + '\')">✕</span></div>';
+    }).join('') +
+    '</div>';
+
+  var html =
+    '<div class="form-group"><label>内部编号 <span style="color:var(--danger)">*</span></label><input id="vaPlate" value="' + plateVal + '" ' + plateDisabled + ' placeholder="如：矿A-001" /></div>' +
+    '<div class="form-group"><label>所属部门 <span style="color:var(--danger)">*</span></label><select id="vaDept"><option value="总调度室" ' + deptZS + '>总调度室</option><option value="西藏恒骏" ' + deptHJ + '>西藏恒骏</option></select></div>' +
+    '<div class="row2"><div class="form-group"><label>类型</label><input id="vaType" value="' + typeVal + '" placeholder="如：履带挖掘机" /></div><div class="form-group"><label>具体型号</label><input id="vaModel" value="' + modelVal + '" placeholder="如：CAT 390D" /></div></div>' +
+    '<div class="row2"><div class="form-group"><label>出厂日期</label><input id="vaMdate" type="date" value="' + mdateVal + '" /></div><div class="form-group"><label>购买日期</label><input id="vaPdate" type="date" value="' + pdateVal + '" /></div></div>' +
+    '<div class="row2"><div class="form-group"><label>车辆识别代码(VIN)</label><input id="vaVin" value="' + vinVal + '" placeholder="VIN码" /></div><div class="form-group"><label>保险到期日</label><input id="vaIns" type="date" value="' + insVal + '" /></div></div>' +
+    '<div class="form-group"><label>年检日期</label><input id="vaInsp" type="date" value="' + inspVal + '" /></div>' +
+    '<div class="row2"><div class="form-group"><label>保养间隔(h)</label><input id="vaInterval" type="number" value="' + intervVal + '" /></div><div class="form-group"><label>下次保养工时(h)</label><input id="vaNextMaint" type="number" value="' + nextVal + '" /></div></div>' +
+    '<div class="form-group" style="font-size:11px;color:var(--text2);margin-bottom:4px">📐 公里保养（汽车吊/吊车等按里程保养的车辆填写）</div>' +
+    '<div class="row2"><div class="form-group"><label>保养间隔(km)</label><input id="vaIntervalKm" type="number" value="' + intervKmVal + '" placeholder="如：10000" /></div><div class="form-group"><label>下次保养公里(km)</label><input id="vaNextMaintKm" type="number" value="' + nextKmVal + '" /></div></div>' +
+    '<div class="row2"><div class="form-group"><label>当前公里数(km)</label><input id="vaCurKm" type="number" value="' + curKmVal + '" /></div><div class="form-group"></div></div>' +
+    '<div class="row2">' +
+      '<div class="form-group"><label>行为监控</label><select id="vaBM"><option value="1" ' + bmYes + '>有</option><option value="0" ' + bmNo + '>无</option></select></div>' +
+      '<div class="form-group"><label>360环影</label><select id="vaCam"><option value="1" ' + camYes + '>有</option><option value="0" ' + camNo + '>无</option></select></div>' +
+    '</div>' +
+    '<div class="form-group"><label>车辆外观照片</label>' +
+      '<button class="btn btn-sm btn-o" onclick="vaPickPhotos()">📷 选择照片</button>' +
+      photoPreviewHtml +
+    '</div>';
+
+  showModal(title, html, async function(mask) {
+    var plateNumber = document.getElementById('vaPlate').value.trim();
+    if (!plateNumber) { toast('请输入内部编号'); return; }
+
+    var data = {
+      department: document.getElementById('vaDept').value,
+      vehicle_type: document.getElementById('vaType').value.trim(),
+      model: document.getElementById('vaModel').value.trim(),
+      manufacture_date: document.getElementById('vaMdate').value,
+      purchase_date: document.getElementById('vaPdate').value,
+      vin: document.getElementById('vaVin').value.trim(),
+      insurance_expiry: document.getElementById('vaIns').value,
+      inspection_date: document.getElementById('vaInsp').value,
+      maintenance_interval: parseInt(document.getElementById('vaInterval').value) || 500,
+      next_maintenance_hours: parseInt(document.getElementById('vaNextMaint').value) || 0,
+      maintenance_interval_km: parseInt(document.getElementById('vaIntervalKm').value) || 0,
+      next_maintenance_km: parseInt(document.getElementById('vaNextMaintKm').value) || 0,
+      current_km: parseInt(document.getElementById('vaCurKm').value) || 0,
+      has_behavior_monitor: document.getElementById('vaBM').value === '1',
+      has_360_camera: document.getElementById('vaCam').value === '1',
+      photos: window._vaNewPhotos || []
+    };
+
+    if (isEdit) {
+      var res = await api('/vehicle-archives/' + plate, { method: 'PUT', data: data });
+      if (res && res.code === 200) {
+        toast('更新成功');
+        mask.remove();
+        showVehicleArchiveDetail(plateNumber);
+      } else {
+        toast(res && res.msg || '更新失败');
+      }
+    } else {
+      data.plate_number = plateNumber;
+      var res = await api('/vehicle-archives', { method: 'POST', data: data });
+      if (res && res.code === 200) {
+        toast('车辆档案已创建');
+        mask.remove();
+        showVehicleArchiveList();
+      } else {
+        toast(res && res.msg || '创建失败');
+      }
+    }
+  });
+
+  // 初始化照片数组
+  window._vaNewPhotos = photos.slice();
+}
+
+// 选择照片（用于档案表单）
+function vaPickPhotos() {
+  window.pickPhotos(function(urls) {
+    window._vaNewPhotos = (window._vaNewPhotos || []).concat(urls);
+    var container = document.getElementById('vaPhotoPreview');
+    if (!container) return;
+    urls.forEach(function(url) {
+      var div = document.createElement('div');
+      div.style.position = 'relative';
+      div.innerHTML = '<img src="' + url + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px" /><span style="position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px" onclick="vaRemovePhoto(\'' + url + '\')">✕</span>';
+      container.appendChild(div);
+    });
+  });
+}
+
+// 移除照片
+function vaRemovePhoto(url) {
+  window._vaNewPhotos = (window._vaNewPhotos || []).filter(function(u) { return u !== url; });
+  var container = document.getElementById('vaPhotoPreview');
+  if (!container) return;
+  var imgs = container.querySelectorAll('img');
+  imgs.forEach(function(img) {
+    if (img.src === url) {
+      var wrapper = img.parentElement;
+      if (wrapper) wrapper.remove();
+    }
+  });
+}
+
+// 保养完成（工时）
+async function maintenanceDoneVehicle(plate) {
+  if (!confirm('确认车辆 "' + plate + '" 已完成保养？\n下次保养工时将自动增加保养间隔。')) return;
+  var res = await api('/vehicle-archives/' + plate + '/maintenance-done', { method: 'POST' });
+  if (res && res.code === 200) {
+    toast(res.msg);
+    document.querySelectorAll('.modal-mask').forEach(function(m) { m.remove(); });
+    showVehicleArchiveDetail(plate);
+  } else {
+    toast(res && res.msg || '操作失败');
+  }
+}
+
+// 保养完成（公里）
+async function maintenanceDoneVehicleKm(plate) {
+  if (!confirm('确认车辆 "' + plate + '" 已完成公里保养？\n下次保养公里将自动增加保养间隔。')) return;
+  var res = await api('/vehicle-archives/' + plate + '/maintenance-done-km', { method: 'POST' });
+  if (res && res.code === 200) {
+    toast(res.msg);
+    document.querySelectorAll('.modal-mask').forEach(function(m) { m.remove(); });
+    showVehicleArchiveDetail(plate);
+  } else {
+    toast(res && res.msg || '操作失败');
+  }
+}
+
+
+// ==================== 管理员仪表盘 ====================
+
+async function renderAdmin(){
+  var el=document.getElementById('mainPage');
+  var dm=new Date().toISOString().slice(0,10);
+  var [dashboard,summary,config,monthlyStats,machPendingRes]=await Promise.all([api('/admin/dashboard'),api('/inspection/today-summary'),api('/admin/config'),api('/admin/monthly-cost-stats'),api('/machinery/pending-list').catch(function(){return {list:[]}})]);
+  var machPending = (machPendingRes && machPendingRes.list) || (Array.isArray(machPendingRes) ? machPendingRes : []);
+  var machPendingCount = machPending.length;
+  el.innerHTML='<div class="layout">'+
+    '<div class="stats-grid">'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'\',\'所有车辆\')" style="cursor:pointer"><div class="stat-num">'+dashboard.totalVehicles+'</div><div class="stat-label">总车辆</div></div>'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'normal\',\'正常车辆\')" style="cursor:pointer"><div class="stat-num">'+dashboard.normalVehicles+'</div><div class="stat-label">正常车辆</div></div>'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'repairing\',\'维修中车辆\')" style="cursor:pointer"><div class="stat-num" style="color:var(--danger)">'+dashboard.repairingCount+'</div><div class="stat-label">维修中</div></div>'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'expired\',\'保养过期车辆\')" style="cursor:pointer"><div class="stat-num" style="color:var(--warning)">'+(dashboard.expiredCount||0)+'</div><div class="stat-label">保养过期</div></div>'+
+    '<div class="stat-item" onclick="renderLeader()" style="cursor:pointer"><div class="stat-num" style="color:var(--warning)">'+dashboard.pendingApprovalCount+'</div><div class="stat-label">待审批报价</div></div>'+
+    '<div class="stat-item" onclick="showPendingAssignments()" style="cursor:pointer"><div class="stat-num" style="color:'+(machPendingCount>0?'var(--warning)':'var(--text2)')+'">'+machPendingCount+'</div><div class="stat-label">待指派用车</div></div>'+
+    '<div class="stat-item"><div class="stat-num">'+dashboard.monthCount+'</div><div class="stat-label">本月报修</div></div>'+
+    '<div class="stat-item"><div class="stat-num" style="color:var(--danger)">¥'+dashboard.monthlyCost+'</div><div class="stat-label">本月已维修费用</div></div>'+
+    '<div class="stat-item" style="display:flex;flex-direction:column;gap:8px"><div onclick="editEstimate(\'year_estimate\',\'本年度预估维修费用\')" style="cursor:pointer;flex:1"><div class="stat-num" style="color:#d48806;font-size:22px" id="estYear">¥'+(config.year_estimate||0)+'</div><div class="stat-label" style="font-size:11px">年度预估费用 ✎</div></div><div style="border-top:1px dashed #e0e0e0"></div><div onclick="editEstimate(\'month_estimate\',\'本月预估维修费用\')" style="cursor:pointer;flex:1"><div class="stat-num" style="color:#d48806;font-size:22px" id="estMonth">¥'+(config.month_estimate||0)+'</div><div class="stat-label" style="font-size:11px">本月预估费用 ✎</div></div></div>'+
+    '</div>'+
+    (renderMonthlyChart(monthlyStats||[])||'')+
+    '<div class="card" style="border-left:3px solid var(--warning);margin-bottom:14px"><div class="card-title">⚠ 系统预警</div><div id="sysAlerts" style="font-size:13px">检测中...</div></div>'+
+    '<div class="row3">'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showVehicleArchiveList()"><h3>📋</h3>在编车辆档案<br><span style="font-size:12px;color:var(--text2)">车辆详细档案查阅</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showAdminVehicles()"><h3>🚛</h3>车辆管理<br><span style="font-size:12px;color:var(--text2)">录入/管理车辆</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showAdminUsers()"><h3>👥</h3>人员管理<br><span style="font-size:12px;color:var(--text2)">添加/查看用户</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="renderLeader()"><h3>📋</h3>维修进度详情<br><span style="font-size:12px;color:var(--text2)">查看/追溯</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showCostReport()"><h3>💰</h3>维修费用报表<br><span style="font-size:12px;color:var(--text2)">修理厂结算明细</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showExportOrders()"><h3>📥</h3>导出工单<br><span style="font-size:12px;color:var(--text2)">导出维修数据</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showTodayInspDetail()"><h3>✅</h3>点检记录<br><span style="font-size:12px;color:var(--text2)">每日检查情况</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showRepairShops()"><h3>🔧</h3>修理厂管理<br><span style="font-size:12px;color:var(--text2)">管理外包修理厂</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showPartsManagement()"><h3>📦</h3>配件管理<br><span style="font-size:12px;color:var(--text2)">库存/领用/出库</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showAttendanceReport()"><h3>⏱</h3>员工出勤信息<br><span style="font-size:12px;color:var(--text2)">出勤筛选导出</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="backupDB()"><h3>💾</h3>数据备份<br><span style="font-size:12px;color:var(--text2)">一键备份</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showMachineryListAll()"><h3>🚜</h3>用车审批<br><span style="font-size:12px;color:var(--text2)">查看全部用车记录</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showHazardList()"><h3>⚠</h3>隐患闭环<br><span style="font-size:12px;color:var(--text2)">上报整改确认</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer;border-color:var(--gold)" onclick="showWeatherDashboard()"><h3>🌤️</h3>天气预警<br><span style="font-size:12px;color:var(--text2)">矿区天气/预警管理</span></div>'+
+    '</div></div>';
+  loadSystemAlerts();loadBulletin();
+}
+
+// ==================== 调度员仪表盘 ====================
+
+async function renderDispatcher(){
+  var el=document.getElementById('mainPage');
+  var pendingRes=await api('/machinery/pending-list');
+  var all=await api('/machinery/list-all');
+  var pendingList = (pendingRes && pendingRes.list) || (Array.isArray(pendingRes) ? pendingRes : []);
+  var pendingCount = pendingList.length;
+  var todayCount=(all||[]).filter(function(a){return a.created_at&&a.created_at.slice(0,10)===new Date().toISOString().slice(0,10)}).length;
+  el.innerHTML='<div class="layout">'+
+    '<div class="stats-grid">'+
+    '<div class="stat-item"><div class="stat-num" style="color:'+(pendingCount>0?'var(--danger)':'var(--success)')+'">'+pendingCount+'</div><div class="stat-label">待指派申请</div></div>'+
+    '<div class="stat-item"><div class="stat-num">'+todayCount+'</div><div class="stat-label">今日申请</div></div>'+
+    '<div class="stat-item" onclick="showPendingAssignments()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">🚜</div><div class="stat-label">处理指派</div></div>'+
+    '<div class="stat-item" onclick="showDispatchedOrders()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">💰</div><div class="stat-label">已派车收益明细</div></div>'+
+    '</div>'+
+    '<div class="row2">'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showVehicleArchiveList()"><h3>📋</h3>在编车辆档案<br><span style="font-size:12px;color:var(--text2)">车辆详细档案查阅</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showAdminVehicles()"><h3>🚛</h3>车辆管理<br><span style="font-size:12px;color:var(--text2)">录入/管理车辆</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showMachineryList()"><h3>📋</h3>我的用车申请<br><span style="font-size:12px;color:var(--text2)">查看我的申请记录</span></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;cursor:pointer;border-color:var(--gold);margin-top:12px" onclick="showWeatherDashboard()"><h3>🌤️</h3>天气预警<br><span style="font-size:12px;color:var(--text2)">查看矿区天气和预警（红色预警暂停派车）</span></div>'+
+    '</div></div>';
+  loadBulletin();
+}
+
+
+// ==================== 用车申请人仪表盘 ====================
+
+async function renderApplicant(){
+  var el=document.getElementById('mainPage');
+  try {
+    var [stats, active] = await Promise.all([
+      api('/machinery/my-cost-stats'),
+      api('/machinery/active')
+    ]);
+    var s = stats || {};
+    var tm = s.thisMonth || {};
+    var at = s.allTime || {};
+    var activeCount = (active || []).length;
+
+    // 构建进行中用车卡片
+    var activeCards = '';
+    if (active && active.length > 0) {
+      active.forEach(function(item) {
+        var isHazardous = Number(item.is_hazardous) ? '<span class="tag t-reject" style="margin-left:6px">⚠ 危险</span>' : '';
+        activeCards += '<div class="card" style="border-left:3px solid var(--success);margin-bottom:10px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+            '<div><b style="font-size:15px;color:var(--gold-light)">'+item.application_no+'</b><span class="tag t-progress" style="margin-left:8px">'+MA_ST_MAP[item.status]+'</span>'+isHazardous+'</div>'+
+            '<button class="btn btn-sm btn-s" onclick="event.stopPropagation();earlyEndMachinery('+item.id+')">⏹ 提前结束</button>'+
+          '</div>'+
+          '<div style="margin-top:8px;font-size:13px;line-height:1.7">'+
+            '<div><b>📋 车型：</b>'+item.vehicle_type+' | <span class="tag">'+(MA_TYPE_MAP[item.application_type]||'短期')+'用车</span></div>'+
+            (item.assigned_plate ?
+              '<div style="margin-top:4px;padding:8px;background:rgba(200,160,74,.06);border-radius:6px">'+
+                '<div><b>🚛 指派车辆：</b><span style="color:var(--primary);font-weight:600">'+item.assigned_plate+'</span>（'+item.assigned_vehicle_type+' '+item.assigned_vehicle_model+'）</div>'+
+                (item.driver_name ? '<div><b>👤 驾驶员：</b>'+item.driver_name+' 📞 <a href="tel:'+item.driver_phone+'" style="color:var(--gold)">'+item.driver_phone+'</a></div>' : '')+
+                (item.hourly_rate ? '<div><b>💰 小时单价：</b>¥'+item.hourly_rate+'/h</div>' : '')+
+              '</div>' : '<div style="margin-top:4px;padding:8px;background:rgba(212,160,23,.08);border-radius:6px;color:var(--warning);font-size:12px">⏳ 等待调度员分派车辆…</div>')+
+            '<div style="margin-top:6px"><b>⏰ 时段：</b>'+(item.scheduled_start||'')+' — '+(item.scheduled_end||'')+'</div>'+
+            '<div><b>📍 地点：</b>'+item.work_location+(item.work_altitude ? ' ('+item.work_altitude+')' : '')+'</div>'+
+            '<div><b>📝 用途：</b>'+item.work_purpose+'</div>'+
+          '</div>'+
+        '</div>';
+      });
+    }
+
+    el.innerHTML='<div class="layout">'+
+      '<div class="stats-grid">'+
+      '<div class="stat-item" onclick="showMachineryApply()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">🚜</div><div class="stat-label">申请用车</div></div>'+
+      '<div class="stat-item"><div class="stat-num" style="color:'+(activeCount>0?'var(--success)':'var(--text2)')+'">'+activeCount+'</div><div class="stat-label">进行中</div></div>'+
+      '<div class="stat-item"><div class="stat-num">'+(tm.totalCount||0)+'</div><div class="stat-label">本月申请</div></div>'+
+      '<div class="stat-item"><div class="stat-num" style="color:var(--danger)">¥'+(tm.totalCost||0).toFixed(0)+'</div><div class="stat-label">本月费用</div></div>'+
+      '</div>'+
+      (activeCards ? '<div style="margin-bottom:14px">'+activeCards+'</div>' : '')+
+      '<div class="row2">'+
+      '<div class="card" style="text-align:center;cursor:pointer" onclick="showMachineryList()"><h3>📋</h3>申请记录<br><span style="font-size:12px;color:var(--text2)">查看·提前结束</span></div>'+
+      '<div class="card" style="text-align:center;cursor:pointer" onclick="showMachineryCostStats()"><h3>💰</h3>费用统计<br><span style="font-size:12px;color:var(--text2)">累计 ¥'+((at.totalCost||0)).toFixed(0)+'</span></div>'+
+      '</div></div>';
+  } catch(e) {
+    el.innerHTML='<div class="layout"><div class="stats-grid">'+
+      '<div class="stat-item" onclick="showMachineryApply()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">🚜</div><div class="stat-label">申请用车</div></div>'+
+      '</div>'+
+      '<div class="card" style="text-align:center;cursor:pointer" onclick="showMachineryList()"><h3>📋</h3>申请记录<br><span style="font-size:12px;color:var(--text2)">查看·提前结束</span></div>'+
+      '</div>';
+  }
+  loadBulletin();
+}
+
+// ==================== 驾驶员仪表盘 ====================
+
+async function renderDriver(){
+  var el=document.getElementById('mainPage'),today=new Date().toISOString().slice(0,10),sub=today.slice(0,7);
+  el.innerHTML='<div class="layout"><div class="stats-grid" id="dashStats"></div>'+
+    '<div class="card" style="border-left:3px solid var(--warning);margin-bottom:0"><div id="maintAlerts" style="font-size:12px;color:var(--warning)">检测中...</div></div>'+
+    '<div id="pendingAcceptCard" style="display:none"><div class="card" style="border-left:3px solid var(--success)"><div class="card-title">✅ 待验收工单 <span style="font-size:12px;color:var(--success)">维修完毕，请确认验收</span></div><div id="pendingAcceptList"></div></div></div>'+
+    '<div class="row2"><div class="card"><div class="card-title">🔧 快速报修 <button class="btn btn-p btn-sm" onclick="showReport()">+ 报修</button></div><div id="recentOrders">加载中...</div></div>'+
+    '<div class="card"><div class="card-title">✅ 今日点检 <span style="font-size:12px;color:var(--text2)">'+today+'</span></div><div id="todayCheck">加载中...</div></div></div>'+
+    '<div class="card"><div class="card-title">🚛 车辆状态总览</div><div id="vehicleStatus">加载中...</div></div>'+
+    '<div class="row2"><div class="card"><div class="card-title">📋 今日考勤</div><div id="attCard">加载中...</div></div>'+
+    '<div class="card"><div class="card-title">⏰ 今日加班</div><div id="otCard">加载中...</div></div></div>'+
+    '<div class="row2"><div class="card" style="text-align:center;cursor:pointer" onclick="showVehicleArchiveList()"><h3>📋</h3>在编车辆档案<br><span style="font-size:12px;color:var(--text2)">车辆详细档案查阅</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer" onclick="showDriverTasks()"><h3>🚜</h3>工程机械派车任务<br><span style="font-size:12px;color:var(--text2)">查看指派详情</span></div>'+
+    '<div class="card" style="text-align:center;cursor:pointer;border-color:var(--gold)" onclick="showWeatherDashboard()"><h3>🌤️</h3>天气预警<br><span style="font-size:12px;color:var(--text2)">查看矿区天气</span></div></div></div>';
+  loadDriverData(today,sub);loadSystemAlerts();loadAttendanceCard();loadBulletin();
+}
+
+async function loadDriverData(today,month){
+  try{
+    var [allVehicles,orders,inspRecords]=await Promise.all([api('/vehicles'),api('/repair/my-orders'),api('/inspection/my-records?month='+month)]);
+    var todayInsp=(inspRecords||[]).filter(function(r){return r.inspection_date===today});
+    var recentOrders=(orders||[]).slice(0,4);
+    var activeOrders=(orders||[]).filter(function(o){return['pending_accept','pending_quote','pending_approval','approved','repairing'].indexOf(o.status)>=0});
+    var pendingAccept=(orders||[]).filter(function(o){return o.status==='completed'});
+    document.getElementById('dashStats').innerHTML=
+      '<div class="stat-item" onclick="showVehiclesByStatus(\'\',\'所有车辆\')" style="cursor:pointer"><div class="stat-num">'+(allVehicles||[]).length+'</div><div class="stat-label">总车辆</div></div>'+
+      '<div class="stat-item"><div class="stat-num">'+activeOrders.length+'</div><div class="stat-label">进行中工单</div></div>'+
+      '<div class="stat-item"><div class="stat-num" style="color:'+(todayInsp.length?'var(--success)':'var(--danger)')+'">'+(todayInsp.length?'已完成':'未提交')+'</div><div class="stat-label">今日点检</div></div>'+
+      '<div class="stat-item" onclick="showPartsRequisition()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">🔧</div><div class="stat-label">配件领用</div></div>'+
+      '<div class="stat-item" onclick="showQuiz()" style="cursor:pointer"><div class="stat-num" style="color:var(--gold)">📝</div><div class="stat-label">每日一测</div></div>';
+    document.getElementById('recentOrders').innerHTML=recentOrders.length?recentOrders.map(function(o){return '<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showOrderDetail('+o.id+')"><div class="flex"><span class="order-no">'+o.order_no+'</span><span class="tag '+ST_TAG[o.status]+'">'+STATUS_MAP[o.status]+'</span></div><div style="font-size:11px;color:var(--text2);margin-top:4px">'+o.plate_number+' | '+o.created_at+'</div></div>'}).join(''):'<div class="empty">暂无工单</div>';
+    document.getElementById('todayCheck').innerHTML=
+      '<div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn btn-p btn-sm" onclick="showInspection(\'morning\')">☀ 早检</button><button class="btn btn-o btn-sm" onclick="showInspection(\'evening\')">🌙 晚检</button></div>'+
+      (todayInsp.length?todayInsp.map(function(r){return '<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showInspectionDetail('+r.id+')"><span style="font-weight:500">'+r.plate_number+'</span> <span class="tag '+(r.overall_status==='normal'?'t-done':'t-reject')+'">'+(r.overall_status==='normal'?'正常':'异常')+'</span>'+'<br><span style="font-size:11px;color:var(--text2)">油位:'+(LEVEL_MAP[r.oil_level]||'-')+' / 水位:'+(LEVEL_MAP[r.coolant_level]||'-')+' / 九样:'+(r.toolkit_check==='ok'?'✅':'❌')+'</span>'+((r.start_hours||r.fuel_amount)?'<br><span style="font-size:11px;color:var(--text2)">工时:'+(r.start_hours||0)+'h→'+(r.end_hours||0)+'h 加油:'+(r.fuel_amount||0)+'L 停车:'+(r.parking_location||'-')+'</span>':'')+'</div>'}).join(''):'<div class="empty">今日暂无点检记录</div>');
+    var vsHtml='<table><tr><th>内部编号</th><th>类型</th><th>型号</th><th>当前工时</th><th>下次保养</th><th>状态</th></tr>';
+    (allVehicles||[]).filter(function(v){return v.archive_department!=='西藏恒骏'}).forEach(function(v){
+      var curH=v.archive_current_hours||v.latest_end_hours||0;
+      var next=v.archive_next_maintenance||v.next_maintenance_hours||0;
+      var remain=curH&&next?next-curH:999;
+      var st=remain<0?'<span class="tag t-reject">过期</span>':remain<50?'<span class="tag t-pending">即将保养</span>':'<span class="tag t-done">正常</span>';
+      vsHtml+='<tr><td><b>'+v.plate_number+'</b></td><td>'+(v.vehicle_type||'-')+'</td><td>'+(v.model||'-')+'</td><td>'+curH+'h</td><td>'+next+'h</td><td>'+st+'</td></tr>'
+    });
+    vsHtml+='</table>';document.getElementById('vehicleStatus').innerHTML=vsHtml;
+    // 待验收工单
+    var pac=document.getElementById('pendingAcceptCard');if(pendingAccept.length>0){pac.style.display='';document.getElementById('pendingAcceptList').innerHTML='<table><tr><th>工单号</th><th>车辆</th><th>修理厂</th><th>完工时间</th><th>操作</th></tr>'+pendingAccept.map(function(o){return '<tr style="background:rgba(90,158,95,.06)"><td><b>'+o.order_no+'</b></td><td>'+o.plate_number+'</td><td>'+(o.repair_shop_name||'-')+'</td><td>'+(o.updated_at||'').slice(0,16)+'</td><td><button class="btn btn-s btn-sm" onclick="acceptCompletedOrder('+o.id+')">✅ 验收</button> <button class="btn btn-sm btn-o" onclick="showOrderDetail('+o.id+')">详情</button></td></tr>'}).join('')+'</table>'}else{pac.style.display='none'}
+  }catch(e){console.error(e)}
+}
+
+// ==================== 修理厂仪表盘 ====================
+
+async function renderShop(){
+  var el=document.getElementById('mainPage');
+  el.innerHTML='<div class="layout"><div class="stats-grid" id="shopStats"></div><div class="row2"><div class="card" style="text-align:center;cursor:pointer" onclick="showVehicleArchiveList()"><h3>📋</h3>在编车辆档案<br><span style="font-size:12px;color:var(--text2)">车辆详细档案查阅</span></div></div><div class="card"><div class="card-title">📋 工单列表</div><div class="tabs" id="shopTabs"></div><div id="shopOrders">加载中...</div></div></div>';
+  loadShopData();
+}
+async function loadShopData(tab){
+  tab=tab||'all';
+  var [myOrders,pendingAccept]=await Promise.all([api('/repair/shop-orders'+(tab!=='all'?'?status='+tab:'')),api('/repair/pending-accept')]);
+  myOrders=myOrders||[];pendingAccept=pendingAccept||[];
+  var displayOrders=myOrders.slice();
+  if(tab==='all'||tab==='pending_accept'){var myIds={};myOrders.forEach(function(o){myIds[o.id]=true});pendingAccept.forEach(function(o){if(!myIds[o.id])displayOrders.unshift(o)})}
+  document.getElementById('shopStats').innerHTML=
+    '<div class="stat-item"><div class="stat-num">'+displayOrders.length+'</div><div class="stat-label">全部工单</div></div>'+
+    '<div class="stat-item"><div class="stat-num" style="color:var(--danger)">'+pendingAccept.length+'</div><div class="stat-label">待接单</div></div>'+
+    '<div class="stat-item"><div class="stat-num" style="color:var(--warning)">'+myOrders.filter(function(o){return o.status==='pending_quote'}).length+'</div><div class="stat-label">待报价</div></div>'+
+    '<div class="stat-item"><div class="stat-num" style="color:var(--primary)">'+myOrders.filter(function(o){return['approved','repairing'].indexOf(o.status)>=0}).length+'</div><div class="stat-label">维修中</div></div>';
+  var tabs=[{l:'全部',v:'all'},{l:'待接单',v:'pending_accept'},{l:'待报价',v:'pending_quote'},{l:'待审批',v:'pending_approval'},{l:'维修中',v:'repairing'},{l:'已驳回',v:'rejected'},{l:'待验收',v:'completed'},{l:'已完成',v:'accepted'}];
+  document.getElementById('shopTabs').innerHTML=tabs.map(function(t){return '<button class="tab '+(tab===t.v?'active':'')+'" onclick="loadShopData(\''+t.v+'\')">'+t.l+'</button>'}).join('');
+  document.getElementById('shopOrders').innerHTML=displayOrders.length?'<table><tr><th>工单号</th><th>车辆</th><th>报修人</th><th>故障描述</th><th>状态</th><th>操作</th></tr>'+displayOrders.map(function(o){
+    return '<tr><td class="order-no" style="font-size:12px">'+o.order_no+(o.is_urgent?' <span style="background:#ff4d4f;color:#fff;padding:1px 5px;border-radius:3px;font-size:10px">急</span>':'')+'</td><td>'+o.plate_number+'</td><td>'+(o.driver_name||'-')+'</td><td style="max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px">'+(o.fault_description||'-')+'</td><td><span class="tag '+ST_TAG[o.status]+'">'+STATUS_MAP[o.status]+'</span></td><td>'+actionBtns(o)+'</td></tr>'
+  }).join('')+'</table>':'<div class="empty">暂无工单</div>';
+}
+function actionBtns(o){
+  var b='<button class="btn btn-sm btn-p" onclick="showOrderDetail('+o.id+')">详情</button>';
+  if(o.status==='pending_accept')b+=' <button class="btn btn-sm btn-s" onclick="acceptOrder('+o.id+')">接单</button>';
+  if(o.status==='pending_quote'||o.status==='rejected')b+=' <button class="btn btn-sm btn-s" onclick="showQuote('+o.id+','+(o.status==='rejected'?'true':'false')+')">'+(o.status==='rejected'?'重新报价':'报价')+'</button>';
+  if(o.status==='approved'||o.status==='repairing'){b+=' <button class="btn btn-sm btn-p" onclick="updateProgress('+o.id+')">进度</button>';b+=' <button class="btn btn-sm btn-s" onclick="completeOrder('+o.id+')">完工</button>'}
+  if(o.status==='completed')b+=' <button class="btn btn-sm btn-s" onclick="notifyDriverAccept('+o.id+',\''+(o.driver_name||'驾驶员')+'\')">📢 通知验收</button>';
+  return b;
+}
+
+// ==================== 科级审批仪表盘 ====================
+
+async function renderLeader(){
+  var el=document.getElementById('mainPage'),backBtn=USER.role==='admin'?'<div style="position:fixed;top:72px;left:12px;z-index:999;font-size:11px"><button class="btn btn-o btn-sm" onclick="renderAdmin()" style="background:var(--surface);box-shadow:0 2px 8px rgba(0,0,0,.3)">← 返回管理后台</button></div>':'';
+  var [dashboard,pending,monthlyStats,config,summary]=await Promise.all([api('/admin/dashboard'),api('/repair/pending-approval'),api('/admin/monthly-cost-stats'),api('/admin/config'),api('/inspection/today-summary')]);
+  el.innerHTML='<div class="layout">'+backBtn+
+    '<div class="stats-grid">'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'\',\'所有车辆\')" style="cursor:pointer"><div class="stat-num">'+dashboard.totalVehicles+'</div><div class="stat-label">总车辆</div></div>'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'normal\',\'正常车辆\')" style="cursor:pointer"><div class="stat-num">'+dashboard.normalVehicles+'</div><div class="stat-label">正常车辆</div></div>'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'repairing\',\'维修中车辆\')" style="cursor:pointer"><div class="stat-num" style="color:var(--danger)">'+dashboard.repairingCount+'</div><div class="stat-label">维修中</div></div>'+
+    '<div class="stat-item" onclick="showVehiclesByStatus(\'expired\',\'保养过期车辆\')" style="cursor:pointer"><div class="stat-num" style="color:var(--warning)">'+(dashboard.expiredCount||0)+'</div><div class="stat-label">保养过期</div></div>'+
+    '</div>'+
+    '<div class="card" style="text-align:center;cursor:pointer;border-color:var(--gold);margin-bottom:12px" onclick="showWeatherDashboard()"><h3>🌤️ 矿区天气预警</h3><span style="font-size:12px;color:var(--text2)">查看各区域实时天气和预警信息</span></div>'+
+    '<div class="row2"><div class="card" style="text-align:center;cursor:pointer" onclick="showVehicleArchiveList()"><h3>📋</h3>在编车辆档案<br><span style="font-size:12px;color:var(--text2)">车辆详细档案查阅</span></div></div>'+
+    '<div class="card"><div class="card-title">✍ 待审批报价 ('+(pending||[]).length+')</div><div id="pendingList"></div></div>'+
+    (renderMonthlyChart(monthlyStats||[])||'')+
+    '<div class="card"><div class="card-title">📋 维修进度详情</div><div id="allOrdersList">加载中...</div></div></div>';
+  document.getElementById('pendingList').innerHTML=(pending||[]).length?pending.map(function(o){
+    var ph='';try{var pp=JSON.parse(o.parts_list||'[]');if(pp.length){ph='<table style="margin:6px 0;font-size:12px;width:100%"><tr><th>配件</th><th>数量</th><th>单价</th><th>小计</th></tr>';pp.forEach(function(p){ph+='<tr><td>'+p.name+'</td><td>'+p.qty+'</td><td>¥'+p.price+'</td><td>¥'+(p.qty*p.price)+'</td></tr>'});ph+='</table>'}}catch(e){}
+    var imgs='';try{var dp=JSON.parse(o.damage_photos||'[]');var np=JSON.parse(o.new_photos||'[]');if(dp.length||np.length){imgs='<div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0">';dp.forEach(function(u){imgs+='<img src="'+u+'" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--warning)" title="损坏配件" onclick="event.stopPropagation();showFaultPhotos('+JSON.stringify(dp)+')"/>'});np.length&&dp.length&&(imgs+='<span style="color:var(--text2);font-size:10px;align-self:center;margin:0 6px">→</span>');np.forEach(function(u){imgs+='<img src="'+u+'" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--success)" title="新配件" onclick="event.stopPropagation();showFaultPhotos('+JSON.stringify(np)+')"/>'});imgs+='</div>'}}catch(e){}
+    return '<div style="padding:12px;border:1px solid var(--warning);background:rgba(212,160,23,.08);border-radius:8px;margin-bottom:10px"><div class="flex"><span class="order-no">'+o.order_no+'</span><span class="tag t-pending">待审批</span></div><div>'+o.plate_number+'（'+o.vehicle_type+'）| 报修人:'+o.driver_name+' | 修理厂:'+o.repair_shop_name+'</div>'+imgs+ph+'<div style="margin:8px 0;display:flex;gap:12px;font-size:13px;color:var(--text2)"><span>配件费: ¥'+(o.parts_cost||0)+'</span><span>人工费: ¥'+(o.labor_cost||0)+'</span><span>工时费: ¥'+(o.hours_cost||0)+'</span></div><div class="flex"><span style="font-size:20px;font-weight:bold;color:var(--danger)">¥'+o.quote_amount+'</span><span style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="approveOrder('+o.id+',true)">✓ 通过</button><button class="btn btn-d btn-sm" onclick="showReject('+o.id+')">✗ 驳回</button><button class="btn btn-sm" style="background:#ff4d4f;color:#fff" onclick="markUrgent('+o.id+')">⚡加急</button><button class="btn btn-sm btn-p" onclick="showOrderDetail('+o.id+')">📋 详情</button></span></div></div>'
+  }).join(''):'<div class="empty">暂无待审批</div>';
+  if(window._pendingTimer)clearInterval(window._pendingTimer);
+  window._pendingTimer=setInterval(async function(){
+    var fresh=await api('/repair/pending-approval');if(!fresh||!fresh.length)return;
+    var pl=document.getElementById('pendingList');if(!pl)return;
+    pl.innerHTML=fresh.map(function(o){
+      var ph='';try{var pp=JSON.parse(o.parts_list||'[]');if(pp.length){ph='<table style="margin:6px 0;font-size:12px;width:100%"><tr><th>配件</th><th>数量</th><th>单价</th><th>小计</th></tr>';pp.forEach(function(p){ph+='<tr><td>'+p.name+'</td><td>'+p.qty+'</td><td>¥'+p.price+'</td><td>¥'+(p.qty*p.price)+'</td></tr>'});ph+='</table>'}}catch(e){}
+      var imgs='';try{var dp=JSON.parse(o.damage_photos||'[]');var np=JSON.parse(o.new_photos||'[]');if(dp.length||np.length){imgs='<div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0">';dp.forEach(function(u){imgs+='<img src="'+u+'" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--warning)" title="损坏配件" onclick="event.stopPropagation();showFaultPhotos('+JSON.stringify(dp)+')"/>'});np.length&&dp.length&&(imgs+='<span style="color:var(--text2);font-size:10px;align-self:center;margin:0 6px">→</span>');np.forEach(function(u){imgs+='<img src="'+u+'" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--success)" title="新配件" onclick="event.stopPropagation();showFaultPhotos('+JSON.stringify(np)+')"/>'});imgs+='</div>'}}catch(e){}
+      return '<div style="padding:12px;border:1px solid var(--warning);background:rgba(212,160,23,.08);border-radius:8px;margin-bottom:10px"><div class="flex"><span class="order-no">'+o.order_no+'</span><span class="tag t-pending">待审批</span></div><div>'+o.plate_number+'（'+o.vehicle_type+'）| 报修人:'+o.driver_name+' | 修理厂:'+o.repair_shop_name+'</div>'+imgs+ph+'<div style="margin:8px 0;display:flex;gap:12px;font-size:13px;color:var(--text2)"><span>配件费: ¥'+(o.parts_cost||0)+'</span><span>人工费: ¥'+(o.labor_cost||0)+'</span><span>工时费: ¥'+(o.hours_cost||0)+'</span></div><div class="flex"><span style="font-size:20px;font-weight:bold;color:var(--danger)">¥'+o.quote_amount+'</span><span style="display:flex;gap:4px"><button class="btn btn-s btn-sm" onclick="approveOrder('+o.id+',true)">✓ 通过</button><button class="btn btn-d btn-sm" onclick="showReject('+o.id+')">✗ 驳回</button><button class="btn btn-sm" style="background:#ff4d4f;color:#fff" onclick="markUrgent('+o.id+')">⚡加急</button><button class="btn btn-sm btn-p" onclick="showOrderDetail('+o.id+')">📋 详情</button></span></div></div>'
+    }).join('')
+  },5000);
+  loadAllOrders();loadBulletin();
+}
+async function loadAllOrders(){
+  var data=await api('/repair/all-orders?pageSize=200');
+  document.getElementById('allOrdersList').innerHTML=data?'<table><tr><th>工单号</th><th>车辆</th><th>驾驶员</th><th>修理厂</th><th>报价</th><th>状态</th><th>时间</th><th>操作</th></tr>'+data.list.map(function(o){
+    return '<tr><td class="order-no" style="font-size:12px">'+o.order_no+(o.is_urgent?' <span style="background:#ff4d4f;color:#fff;padding:1px 4px;border-radius:2px;font-size:10px">急</span>':'')+'</td><td>'+o.plate_number+'</td><td>'+(o.driver_name||'-')+'</td><td>'+(o.repair_shop_name||'-')+'</td><td style="color:var(--danger)">'+(o.quote_amount?'¥'+o.quote_amount:'-')+'</td><td><span class="tag '+ST_TAG[o.status]+'">'+STATUS_MAP[o.status]+'</span></td><td>'+o.created_at.slice(0,16)+'</td><td><button class="btn btn-sm btn-p" onclick="showOrderDetail('+o.id+')">详情</button></td></tr>'
+  }).join('')+'</table>':'<div class="empty">暂无</div>';
+}
+
+
+</script>
+<script src="/modules/weather.js"></script>
+<script src="/modules/hazards.js"></script>
+<script src="/modules/photos.js"></script>
+<script src="/modules/photo_viewer.js"></script>
+<script src="/modules/safety_officer.js"></script>
+<script src="/modules/ledger_link.js"></script>
+<script src="/modules/parts_search.js"></script>
+<script>
+// ====== 工程机械用车申请模块（内嵌） ======
+// ==================== 工程机械用车申请与指派模块 ====================
+
+var MA_URG_MAP = { normal:'普通', urgent:'紧急', emergency:'特急' };
+var MA_ST_MAP = { pending:'待指派', assigned:'用车中', in_progress:'用车中', completed:'已完成', early_completed:'提前结束', cancelled:'已取消' };
+var MA_ST_CLS = { pending:'t-pending', assigned:'t-progress', in_progress:'t-progress', completed:'t-done', early_completed:'t-done', cancelled:'' };
+var MA_TYPE_MAP = { short_term:'短期', long_term:'长期' };
+
+var VEHICLE_TYPES = [
+  '履带挖掘机','轮式挖掘机','装载机','汽车吊',
+  '吊车25吨','吊车50吨','吊车75吨','吊车100吨','吊车300吨','吊车500吨'
+];
+
+// 预用车时间段选项（短期）
+var TIME_SLOTS = [
+  '08:00-12:00','08:00-17:00','08:00-18:00',
+  '08:30-12:00','08:30-17:30',
+  '09:00-17:00','09:00-18:00','09:30-17:00',
+  '13:00-17:00','13:00-18:00',
+  '14:00-18:00','14:00-22:00',
+  '20:00-08:00','22:00-06:00'
+];
+
+// ==================== 申请方：新建申请（支持短期/长期） ====================
+function showMachineryApply() {
+  var today = new Date().toISOString().slice(0,10);
+  var slotOpts = TIME_SLOTS.map(function(s) { return '<option value="'+s+'">'+s+'</option>'; }).join('');
+  var urgOpts = ['normal','urgent','emergency'].map(function(u) { return '<option value="'+u+'">'+MA_URG_MAP[u]+'</option>'; }).join('');
+
+  var typeOpts = VEHICLE_TYPES.map(function(t) { return '<option value="'+t+'">'+t+'</option>'; }).join('');
+
+  var html = [
+    '<div class="form-group"><label>申请类型</label><select id="maAppType" onchange="toggleAppTypeFields()"><option value="short_term">短期用车</option><option value="long_term">长期用车</option></select></div>',
+    '<div class="form-group"><label>所需车型 <span style="color:var(--danger)">*</span></label><select id="maVType" onchange="toggleCustomVType()">'+typeOpts+'<option value="__custom__">✏ 自定义输入...</option></select><input id="maVTypeCustom" placeholder="请输入车型" style="display:none;margin-top:6px" /></div>',
+    '<div class="row2"><div class="form-group"><label>申请部门 <span style="color:var(--danger)">*</span></label><input id="maDept" placeholder="如：第一选矿厂精尾车间" /></div><div class="form-group"><label>申请人姓名 <span style="color:var(--danger)">*</span></label><input id="maName" placeholder="申请人姓名" /></div></div>',
+    '<div class="row2"><div class="form-group"><label>申请人电话 <span style="color:var(--danger)">*</span></label><input id="maPhone" type="tel" placeholder="联系电话" /></div><div class="form-group"><label>紧急程度</label><select id="maUrgency">'+urgOpts+'</select></div></div>',
+    '<div id="shortTermFields"><div class="form-group"><label>用车日期 <span style="color:var(--danger)">*</span></label><input id="maDate" type="date" value="'+today+'" /></div><div class="row2"><div class="form-group"><label>开始时间 <span style="color:var(--danger)">*</span></label><input id="maStartTime" type="time" value="08:00" /></div><div class="form-group"><label>结束时间 <span style="color:var(--danger)">*</span></label><input id="maEndTime" type="time" value="17:00" /></div></div></div>',
+    '<div id="longTermFields" style="display:none"><div class="row2"><div class="form-group"><label>开始日期时间 <span style="color:var(--danger)">*</span></label><input id="maStartDT" type="datetime-local" /></div><div class="form-group"><label>结束日期时间 <span style="color:var(--danger)">*</span></label><input id="maEndDT" type="datetime-local" /></div></div></div>',
+    '<div class="row2"><div class="form-group"><label>作业地点 <span style="color:var(--danger)">*</span></label><input id="maLocation" placeholder="如：采矿场3号平台" /></div><div class="form-group"><label>作业海拔</label><input id="maAltitude" placeholder="如：4600m" /></div></div>',
+    '<div class="form-group"><label>作业用途 <span style="color:var(--danger)">*</span></label><textarea id="maPurpose" placeholder="请描述作业用途..." rows="3"></textarea></div>',
+    '<div class="form-group"><label>是否涉及危险作业</label><select id="maHazardous" onchange="toggleHazardousFields()"><option value="0">否</option><option value="1">是</option></select></div>',
+    '<div id="hazardousFields" style="display:none;border:1px solid var(--danger);border-radius:8px;padding:14px;margin-top:10px;background:rgba(192,57,43,.05)">',
+      '<div style="font-weight:600;color:var(--danger);margin-bottom:10px;font-size:14px">⚠ 危险作业审批与安全交底</div>',
+      '<div style="margin-bottom:10px"><span style="color:var(--text2);font-size:13px;display:block;margin-bottom:8px">选择交底方式</span>',
+        '<div class="radio-pill-group">',
+          '<label class="radio-pill active" id="pillAttachment" onclick="selectBriefingPill(\'attachment\')">',
+            '<input type="radio" name="briefingMethod" value="attachment" checked style="display:none" />📎 上传附件交底</label>',
+          '<label class="radio-pill" id="pillOnsite" onclick="selectBriefingPill(\'onsite\')">',
+            '<input type="radio" name="briefingMethod" value="onsite" style="display:none" />👤 现场交底</label>',
+        '</div>',
+      '</div>',
+      '<div id="briefingUploadArea">',
+        '<div style="color:var(--text2);font-size:13px;margin-bottom:6px">上传交底文件/照片</div>',
+        '<label for="briefingFiles" class="upload-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;cursor:pointer;transition:all .2s;text-align:center;color:var(--text2);font-size:13px">📂 点击选择文件（图片/PDF/文档）</label>',
+        '<input type="file" id="briefingFiles" multiple accept="image/*,.pdf,.doc,.docx" onchange="previewBriefingFiles()" style="display:none" />',
+        '<div id="briefingPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>',
+      '</div>',
+    '</div>'
+  ].join('');
+
+  showModal('🚜 工程机械用车申请', html, async function(mask) {
+    var appType = document.getElementById('maAppType').value;
+    var vtypeSel = document.getElementById('maVType').value;
+    var vtype = vtypeSel === '__custom__' ? document.getElementById('maVTypeCustom').value.trim() : vtypeSel;
+    if (!vtype) { alert('请选择车型'); return false; }
+    var dept = document.getElementById('maDept').value.trim();
+    var name = document.getElementById('maName').value.trim();
+    var phone = document.getElementById('maPhone').value.trim();
+    var loc = document.getElementById('maLocation').value.trim();
+    var altitude = document.getElementById('maAltitude').value.trim();
+    var purpose = document.getElementById('maPurpose').value.trim();
+    var hazardous = document.getElementById('maHazardous').value;
+    var urg = document.getElementById('maUrgency').value;
+
+    if (!dept) { alert('请填写申请部门'); return false; }
+    if (!name) { alert('请填写申请人姓名'); return false; }
+    if (!phone) { alert('请填写申请人电话'); return false; }
+    if (!loc) { alert('请填写作业地点'); return false; }
+    if (!purpose) { alert('请填写作业用途'); return false; }
+
+    var schedStart, schedEnd;
+    if (appType === 'long_term') {
+      schedStart = document.getElementById('maStartDT').value;
+      schedEnd = document.getElementById('maEndDT').value;
+      if (!schedStart || !schedEnd) { alert('请选择起止日期时间'); return false; }
+      schedStart = schedStart.replace('T', ' ');
+      schedEnd = schedEnd.replace('T', ' ');
+    } else {
+      var d = document.getElementById('maDate').value;
+      if (!d) { alert('请选择用车日期'); return false; }
+      var st = document.getElementById('maStartTime').value;
+      var et = document.getElementById('maEndTime').value;
+      if (!st || !et) { alert('请选择开始和结束时间'); return false; }
+      schedStart = d + ' ' + st;
+      schedEnd = d + ' ' + et;
+    }
+
+    var briefingMethod = '', briefingFiles = '[]';
+    if (hazardous === '1') {
+      var mr = document.querySelector('input[name="briefingMethod"]:checked');
+      briefingMethod = mr ? mr.value : '';
+      var fi = document.getElementById('briefingFiles');
+      if (fi && fi.files.length > 0 && briefingMethod === 'attachment') {
+        var urls = await uploadMultipleFiles(fi.files);
+        briefingFiles = JSON.stringify(urls);
+      }
+    }
+
+    await api('/machinery/apply', { method: 'POST', data: {
+      applicant_dept: dept, applicant_name: name, applicant_phone: phone,
+      vehicle_type: vtype, application_type: appType,
+      scheduled_start: schedStart, scheduled_end: schedEnd,
+      work_location: loc, work_altitude: altitude, work_purpose: purpose,
+      is_hazardous: hazardous === '1', urgency: urg,
+      briefing_method: briefingMethod, briefing_files: briefingFiles
+    }});
+    toast('申请已提交');
+    mask.remove();
+    renderPage();
+  });
+}
+
+function toggleCustomVType() {
+  var sel = document.getElementById('maVType');
+  var input = document.getElementById('maVTypeCustom');
+  if (input) input.style.display = sel && sel.value === '__custom__' ? 'block' : 'none';
+}
+function toggleAppTypeFields() {
+  var sel = document.getElementById('maAppType');
+  var isLong = sel && sel.value === 'long_term';
+  var s = document.getElementById('shortTermFields');
+  var l = document.getElementById('longTermFields');
+  if (s) s.style.display = isLong ? 'none' : 'block';
+  if (l) l.style.display = isLong ? 'block' : 'none';
+}
+
+// 上传多文件辅助函数
+async function uploadMultipleFiles(files) {
+  var urls = [];
+  for (var i = 0; i < files.length; i++) {
+    var fd = new FormData();
+    fd.append('file', files[i]);
+    var r = await fetch(API + '/upload/single', { method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN }, body: fd });
+    var d = await r.json();
+    if (d.code === 200 && d.data) urls.push(d.data.url);
+  }
+  return urls;
+}
+
+function toggleHazardousFields() {
+  var sel = document.getElementById('maHazardous');
+  var div = document.getElementById('hazardousFields');
+  if (div) div.style.display = sel && sel.value === '1' ? 'block' : 'none';
+}
+function selectBriefingPill(method) {
+  // Update hidden radios
+  var radios = document.querySelectorAll('input[name="briefingMethod"]');
+  radios.forEach(function(r) { r.checked = (r.value === method); });
+  // Update pill styles
+  document.querySelectorAll('.radio-pill').forEach(function(p) { p.classList.remove('active'); });
+  var targetPill = document.getElementById(method === 'attachment' ? 'pillAttachment' : 'pillOnsite');
+  if (targetPill) targetPill.classList.add('active');
+  // Toggle upload area
+  toggleBriefingUpload();
+}
+function toggleBriefingUpload() {
+  var radio = document.querySelector('input[name="briefingMethod"]:checked');
+  var area = document.getElementById('briefingUploadArea');
+  if (area) area.style.display = radio && radio.value === 'attachment' ? 'block' : 'none';
+}
+function previewBriefingFiles() {
+  var files = document.getElementById('briefingFiles').files;
+  var preview = document.getElementById('briefingPreview');
+  if (!preview) return;
+  preview.innerHTML = '';
+  for (var i = 0; i < files.length; i++) {
+    (function(file) {
+      if (file.type.startsWith('image/')) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML += '<div style="width:80px;height:80px;overflow:hidden;border-radius:4px;border:1px solid var(--border)"><img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover" title="'+file.name+'" /></div>';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.innerHTML += '<div style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid var(--border);font-size:12px;text-align:center">📄 '+file.name+'</div>';
+      }
+    })(files[i]);
+  }
+}
+
+// ==================== 申请方：我的申请列表 ====================
+function showMachineryList() {
+  api('/machinery/my-applications').then(function(data) {
+    if (!data || !data.length) return showModal('📋 我的用车申请', '<div class="empty">暂无申请记录</div><button class="btn btn-p btn-sm" onclick="showMachineryApply()" style="margin-top:12px">+ 新建申请</button>');
+
+    var rows = '';
+    data.forEach(function(item) {
+      var isActive = (item.status === 'assigned' || item.status === 'in_progress');
+      var vehicleCell = '';
+      if (item.assigned_plate) {
+        vehicleCell = '<td><span style="color:var(--primary);font-weight:600">'+item.assigned_plate+'</span><br><span style="font-size:11px">'+item.assigned_vehicle_type+' '+item.assigned_vehicle_model+'</span>'+(item.driver_name?'<br><span style="font-size:11px">👤 '+item.driver_name+'</span>':'')+'</td>';
+      } else {
+        vehicleCell = '<td style="color:var(--text2)">待分派</td>';
+      }
+      rows += '<tr>'+
+        '<td class="order-no">'+item.application_no+'</td>'+
+        '<td><span class="tag">'+(MA_TYPE_MAP[item.application_type]||'短期')+'</span></td>'+
+        '<td>'+item.applicant_dept+'</td>'+
+        '<td>'+(item.scheduled_start||'').replace(' ','<br>')+' — '+(item.scheduled_end||'').replace(' ','<br>')+'</td>'+
+        '<td>'+item.work_location+'</td>'+
+        '<td><span class="tag '+(item.urgency==='emergency'?'t-reject':item.urgency==='urgent'?'t-pending':'')+'">'+MA_URG_MAP[item.urgency]+'</span></td>'+
+        '<td><span class="tag '+MA_ST_CLS[item.status]+'">'+MA_ST_MAP[item.status]+'</span></td>'+
+        vehicleCell+
+        '<td>'+
+          '<button class="btn btn-sm btn-p" onclick="showMachineryDetail('+item.id+')">详情</button>'+
+          (isActive ? ' <button class="btn btn-sm btn-s" onclick="earlyEndMachinery('+item.id+')">提前结束</button>' : '')+
+          (item.status==='pending' ? ' <button class="btn btn-sm btn-d" onclick="cancelMachinery('+item.id+')">取消</button>' : '')+
+        '</td></tr>';
+    });
+
+    showModal('🚜 我的用车申请',
+      '<button class="btn btn-p btn-sm" onclick="showMachineryApply()" style="margin-bottom:12px">+ 新建申请</button>'+
+      '<table><tr><th>编号</th><th>类型</th><th>部门</th><th>时段</th><th>地点</th><th>紧急</th><th>状态</th><th>指派车辆</th><th>操作</th></tr>'+rows+'</table>'
+    );
+  });
+}
+
+// ==================== 申请方：费用统计 ====================
+function showMachineryCostStats() {
+  api('/machinery/my-cost-stats').then(function(data) {
+    if (!data) return alert('暂无数据');
+    var tm = data.thisMonth || {};
+    var at = data.allTime || {};
+    var items = data.recentItems || [];
+
+    var h = '<div class="stats-grid" style="margin-bottom:12px">'+
+      '<div class="stat-item"><div class="stat-num">'+(tm.totalCount||0)+'</div><div class="stat-label">本月申请</div></div>'+
+      '<div class="stat-item"><div class="stat-num">'+(tm.activeCount||0)+'</div><div class="stat-label">进行中</div></div>'+
+      '<div class="stat-item"><div class="stat-num">'+(tm.totalHours||0).toFixed(1)+'h</div><div class="stat-label">本月工时</div></div>'+
+      '<div class="stat-item"><div class="stat-num" style="color:var(--danger)">¥'+(tm.totalCost||0).toFixed(0)+'</div><div class="stat-label">本月费用</div></div>'+
+      '</div>';
+
+    if (items.length) {
+      h += '<div style="font-weight:600;margin:8px 0">📋 费用明细</div><table><tr><th>编号</th><th>部门</th><th>工时</th><th>单价</th><th>费用</th><th>时间</th></tr>';
+      items.forEach(function(r) {
+        h += '<tr><td class="order-no">'+r.application_no+'</td><td>'+r.applicant_dept+'</td><td>'+r.working_hours+'h</td><td>¥'+r.hourly_rate+'/h</td><td style="font-weight:bold;color:var(--danger)">¥'+r.total_cost+'</td><td>'+(r.updated_at||r.created_at||'').slice(0,10)+'</td></tr>';
+      });
+      h += '</table>';
+    } else {
+      h += '<div class="empty">暂无费用明细</div>';
+    }
+
+    h += '<div style="margin-top:12px;padding:8px;background:var(--bg);border-radius:8px;font-size:13px">累计申请 <b>'+(at.totalCount||0)+'</b> 单 | 累计费用 <b style="color:var(--danger)">¥'+(at.totalCost||0).toFixed(0)+'</b></div>';
+
+    showModal('💰 用车费用统计', h);
+  });
+}
+
+// ==================== 申请方：提前结束 ====================
+function earlyEndMachinery(id) {
+  if (!confirm('确认提前结束该用车申请？\n\n结算时间将后推30分钟（用于返程路途）。')) return;
+  api('/machinery/early-end/'+id, { method: 'POST' }).then(function(r) {
+    if (r) toast('用车已结束，工时：'+r.working_hours+'h，费用：¥'+r.total_cost);
+    document.querySelectorAll('.modal-mask').forEach(function(m) { m.remove(); });
+    renderPage();
+  });
+}
+
+// ==================== 取消申请 ====================
+function cancelMachinery(id) {
+  if (!confirm('确认取消该申请？')) return;
+  api('/machinery/cancel/'+id, { method: 'POST' }).then(function() {
+    toast('已取消');
+    document.querySelectorAll('.modal-mask').forEach(function(m) { m.remove(); });
+    renderPage();
+  });
+}
+
+// ==================== 调度员：待指派列表 ====================
+function showPendingAssignments() {
+  Promise.all([api('/machinery/pending-list'), api('/vehicles'), api('/admin/users?role=driver')]).then(function(r) {
+    var result = r[0];
+    var pending = (result && result.list) || (Array.isArray(result) ? result : []);
+    var stats = (result && result.stats) || null;
+    var vehicles = r[1] || [], drivers = r[2] || [];
+    if (!pending.length) return alert('暂无待指派申请');
+
+    // 计算长期车辆（申请时长>2天）
+    function isLongTerm(item) {
+      if (!item.scheduled_start || !item.scheduled_end) return false;
+      var start = new Date(item.scheduled_start.replace(' ','T'));
+      var end = new Date(item.scheduled_end.replace(' ','T'));
+      return (end - start) > 2 * 24 * 60 * 60 * 1000;
+    }
+
+    // 收集所有车型 + 长期车辆选项
+    var typeSet = {};
+    var hasLongTerm = false;
+    pending.forEach(function(item) {
+      if (item.vehicle_type) typeSet[item.vehicle_type] = (typeSet[item.vehicle_type]||0)+1;
+      if (isLongTerm(item)) hasLongTerm = true;
+    });
+    var types = Object.keys(typeSet).sort();
+
+    // 构建筛选下拉
+    var filterOpts = '<option value="__all__">全部申请 ('+pending.length+')</option>';
+    types.forEach(function(t) {
+      filterOpts += '<option value="'+t.replace(/"/g,'&quot;')+'">'+t+' ('+typeSet[t]+')</option>';
+    });
+    if (hasLongTerm) {
+      var ltCount = pending.filter(function(item){return isLongTerm(item);}).length;
+      filterOpts += '<option value="__long_term__">长期车辆 ('+ltCount+')</option>';
+    }
+
+    // 统计栏
+    var statsBar = '';
+    if (stats) {
+      statsBar = '<div style="display:flex;gap:16px;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:12px;font-size:13px;flex-wrap:wrap">'+
+        '<span>🚛 剩余可派车辆：<b style="color:'+(stats.availableVehicles>0?'var(--success)':'var(--danger)')+'">'+stats.availableVehicles+'</b>/'+stats.totalVehicles+' 台</span>'+
+        '<span>👤 剩余驾驶员：<b style="color:'+(stats.availableDrivers>0?'var(--success)':'var(--danger)')+'">'+stats.availableDrivers+'</b>/'+stats.totalDrivers+' 人</span>'+
+        '</div>';
+    }
+
+    // 渲染表格行的函数
+    function renderRows(filtered) {
+      var rows = '';
+      filtered.forEach(function(item) {
+        var ht = Number(item.is_hazardous) ? '<span class="tag t-reject">危险</span> ' : '';
+        var ltTag = isLongTerm(item) ? ' <span class="tag t-pending">长期</span>' : '';
+        var vtypeDisplay = item.vehicle_type ? '<span style="color:var(--primary);font-weight:600">'+item.vehicle_type+'</span>' : '<span style="color:var(--text2)">未指定</span>';
+        rows += '<tr><td class="order-no">'+item.application_no+'</td><td><span class="tag">'+(MA_TYPE_MAP[item.application_type]||'短期')+'</span>'+ltTag+'</td><td>'+vtypeDisplay+'</td><td><b>'+item.applicant_dept+'</b></td><td>'+item.applicant_name+'<br><span style="font-size:11px">'+item.applicant_phone+'</span></td><td>'+(item.scheduled_start||'').replace(' ','<br>')+'-'+(item.scheduled_end||'').replace(' ','<br>')+'</td><td>'+item.work_location+'</td><td>'+ht+'<span class="tag '+(item.urgency==='emergency'?'t-reject':'t-pending')+'">'+MA_URG_MAP[item.urgency]+'</span></td><td><button class="btn btn-sm btn-p" onclick="showAssignForm('+item.id+')">指派</button> <button class="btn btn-sm btn-s" onclick="showMachineryDetail('+item.id+')">详情</button></td></tr>';
+      });
+      return rows;
+    }
+
+    window._maVehicles = vehicles;
+    window._maDrivers = drivers;
+    window._maPending = pending;
+
+    var modalContent = statsBar +
+      '<div style="margin-bottom:10px;display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:13px;white-space:nowrap">🔍 筛选：</span>'+
+        '<select id="pendingVTypeFilter" onchange="filterPendingByType()" style="font-size:13px;max-width:280px">'+filterOpts+'</select>'+
+        '<span id="pendingFilterCount" style="font-size:12px;color:var(--text2)"></span>'+
+      '</div>'+
+      '<div id="pendingTableWrap"><table><tr><th>编号</th><th>类型</th><th>所需车型</th><th>部门</th><th>申请人</th><th>时段</th><th>地点</th><th>标签</th><th>操作</th></tr>'+renderRows(pending)+'</table></div>';
+
+    showModal('📋 待指派用车申请', modalContent);
+  });
+}
+
+// 筛选待指派列表
+function filterPendingByType() {
+  var sel = document.getElementById('pendingVTypeFilter');
+  var countEl = document.getElementById('pendingFilterCount');
+  var wrap = document.getElementById('pendingTableWrap');
+  if (!sel || !wrap) return;
+  var val = sel.value;
+  var pending = window._maPending || [];
+
+  var filtered;
+  if (val === '__all__') {
+    filtered = pending;
+  } else if (val === '__long_term__') {
+    filtered = pending.filter(function(item) {
+      if (!item.scheduled_start || !item.scheduled_end) return false;
+      var start = new Date(item.scheduled_start.replace(' ','T'));
+      var end = new Date(item.scheduled_end.replace(' ','T'));
+      return (end - start) > 2 * 24 * 60 * 60 * 1000;
+    });
+  } else {
+    filtered = pending.filter(function(item) { return item.vehicle_type === val; });
+  }
+
+  var rows = '';
+  filtered.forEach(function(item) {
+    var ht = Number(item.is_hazardous) ? '<span class="tag t-reject">危险</span> ' : '';
+    function isLT(it) {
+      if (!it.scheduled_start || !it.scheduled_end) return false;
+      return (new Date(it.scheduled_end.replace(' ','T')) - new Date(it.scheduled_start.replace(' ','T'))) > 2*24*60*60*1000;
+    }
+    var ltTag = isLT(item) ? ' <span class="tag t-pending">长期</span>' : '';
+    var vtypeDisplay = item.vehicle_type ? '<span style="color:var(--primary);font-weight:600">'+item.vehicle_type+'</span>' : '<span style="color:var(--text2)">未指定</span>';
+    rows += '<tr><td class="order-no">'+item.application_no+'</td><td><span class="tag">'+(MA_TYPE_MAP[item.application_type]||'短期')+'</span>'+ltTag+'</td><td>'+vtypeDisplay+'</td><td><b>'+item.applicant_dept+'</b></td><td>'+item.applicant_name+'<br><span style="font-size:11px">'+item.applicant_phone+'</span></td><td>'+(item.scheduled_start||'').replace(' ','<br>')+'-'+(item.scheduled_end||'').replace(' ','<br>')+'</td><td>'+item.work_location+'</td><td>'+ht+'<span class="tag '+(item.urgency==='emergency'?'t-reject':'t-pending')+'">'+MA_URG_MAP[item.urgency]+'</span></td><td><button class="btn btn-sm btn-p" onclick="showAssignForm('+item.id+')">指派</button> <button class="btn btn-sm btn-s" onclick="showMachineryDetail('+item.id+')">详情</button></td></tr>';
+  });
+
+  wrap.innerHTML = filtered.length
+    ? '<table><tr><th>编号</th><th>类型</th><th>所需车型</th><th>部门</th><th>申请人</th><th>时段</th><th>地点</th><th>标签</th><th>操作</th></tr>'+rows+'</table>'
+    : '<div class="empty">该筛选项下暂无待指派申请</div>';
+  if (countEl) countEl.textContent = '共 '+filtered.length+' 条';
+}
+
+// ==================== 调度员：指派表单 ====================
+function showAssignForm(id) {
+  var vehicles = window._maVehicles || [];
+  var drivers = window._maDrivers || [];
+  var pending = window._maPending || [];
+
+  // 查找对应申请
+  var app = null;
+  for (var i = 0; i < pending.length; i++) {
+    if (pending[i].id === id) { app = pending[i]; break; }
+  }
+  if (!app) { alert('申请数据丢失，请返回重试'); return; }
+
+  if (!vehicles.length) return alert('请先录入车辆');
+  if (!drivers.length) return alert('暂无可用驾驶员');
+
+  // 按车型匹配排序：完全匹配 → 部分匹配 → 其他
+  var reqType = (app.vehicle_type || '').toLowerCase();
+  var scored = vehicles.map(function(v) {
+    var vt = (v.vehicle_type || '').toLowerCase();
+    var score = 0;
+    if (reqType && vt === reqType) score = 3;
+    else if (reqType && vt.indexOf(reqType) >= 0) score = 2;
+    else if (reqType && reqType.indexOf(vt) >= 0) score = 1;
+    return { v: v, score: score };
+  });
+  scored.sort(function(a, b) { return b.score - a.score; });
+
+  var vOpts = scored.map(function(s) {
+    var v = s.v;
+    var matchBadge = s.score >= 3 ? ' ✅ 车型匹配' : s.score >= 2 ? ' 🔶 部分匹配' : '';
+    return '<option value="'+v.id+'"'+(s.score >= 3 ? ' style="color:var(--success);font-weight:600"' : '')+'>'+v.plate_number+'（'+v.vehicle_type+' '+v.model+'） ¥'+(v.hourly_rate||0)+'/h'+matchBadge+'</option>';
+  }).join('');
+
+  var dOpts = drivers.map(function(d) { return '<option value="'+d.id+'">'+d.name+'（'+d.phone+'）</option>'; }).join('');
+
+  // 申请摘要卡片
+  var summaryHtml = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;line-height:1.8">'+
+    '<div style="font-weight:700;color:var(--gold-light);margin-bottom:6px;font-size:14px">'+app.application_no+' — '+(MA_TYPE_MAP[app.application_type]||'短期')+'用车</div>'+
+    '<div><b>所需车型：</b><span style="color:var(--primary);font-weight:600;font-size:15px">'+(app.vehicle_type || '未指定')+'</span></div>'+
+    '<div><b>申请部门：</b>'+app.applicant_dept+' | <b>申请人：</b>'+app.applicant_name+' | <b>电话：</b>'+app.applicant_phone+'</div>'+
+    '<div><b>用车时段：</b>'+(app.scheduled_start||'')+' — '+(app.scheduled_end||'')+'</div>'+
+    '<div><b>作业地点：</b>'+app.work_location+(app.work_altitude ? ' ('+app.work_altitude+')' : '')+'</div>'+
+    '<div><b>作业用途：</b>'+app.work_purpose+'</div>'+
+    '<div><b>紧急程度：</b><span class="tag '+(app.urgency==='emergency'?'t-reject':app.urgency==='urgent'?'t-pending':'')+'">'+MA_URG_MAP[app.urgency]+'</span>'+
+      (Number(app.is_hazardous) ? ' <span class="tag t-reject">危险作业</span>' : '')+
+      (app.briefing_method ? ' | <b>交底方式：</b>'+(app.briefing_method==='attachment'?'附件交底':'现场交底') : '')+
+    '</div>'+
+  '</div>';
+
+  // 统计匹配数量
+  var matchCount = scored.filter(function(s) { return s.score >= 3; }).length;
+  if (matchCount === 0) {
+    summaryHtml += '<div style="padding:10px;background:rgba(212,160,23,.1);border:1px solid var(--warning);border-radius:6px;margin-bottom:14px;font-size:13px;color:var(--warning)">⚠ 警告：车辆列表中没有与所需车型 <b>"'+app.vehicle_type+'"</b> 完全匹配的车辆，请核实或指派近似车型。</div>';
+  }
+
+  showModal('🚛 指派车辆 — '+app.application_no,
+    summaryHtml +
+    '<div class="form-group"><label>选择车辆 <span style="font-size:11px;color:var(--text2)">（✅ 车型匹配优先）</span></label><select id="assignVehicle" style="font-size:13px">'+vOpts+'</select></div>'+
+    '<div class="form-group"><label>选择驾驶员</label><select id="assignDriver">'+dOpts+'</select></div>',
+    async function(mask) {
+      var vid = parseInt(document.getElementById('assignVehicle').value);
+      var did = parseInt(document.getElementById('assignDriver').value);
+      if (!vid || !did) { alert('请选择车辆和驾驶员'); return false; }
+      var result = await api('/machinery/assign/'+id, { method: 'POST', data: { assigned_vehicle_id: vid, assigned_driver_id: did }});
+      if (!result) return false; // api 失败时已弹错误提示，不继续
+      toast('派车成功！已通知驾驶员和申请方');
+      mask.remove();
+      document.querySelectorAll('.modal-mask').forEach(function(m) { m.remove(); });
+      renderPage();
+    }
+  );
+}
+
+// ==================== 驾驶员：派车任务 ====================
+function showDriverTasks() {
+  api('/machinery/driver-tasks').then(function(data) {
+    if (!data || !data.length) return showModal('🚛 派车任务', '<div class="empty">暂无进行中的派车任务</div>');
+
+    var cards = data.map(function(item) {
+      return '<div class="card" style="border-left:3px solid var(--primary);margin-bottom:12px">'+
+        '<div style="display:flex;justify-content:space-between"><div><b style="font-size:18px;color:var(--primary)">'+item.assigned_plate+'</b></div><span class="tag '+(item.urgency==='emergency'?'t-reject':'t-progress')+'">'+MA_URG_MAP[item.urgency]+'</span></div>'+
+        '<div style="margin-top:8px;font-size:13px">'+
+          '<div><b>申请人所需车型：</b><span style="color:var(--gold-light);font-weight:600">'+(item.vehicle_type || '-')+'</span></div>'+
+          '<div><b>指派车辆/型号：</b><span style="color:var(--primary)">'+item.assigned_vehicle_type+' '+item.assigned_vehicle_model+'</span></div>'+
+          '<div><b>服务部门：</b>'+item.applicant_dept+'</div>'+
+          '<div><b>作业时段：</b>'+(item.scheduled_start||'')+' — '+(item.scheduled_end||'')+'</div>'+
+          '<div><b>作业地点：</b>'+item.work_location+(item.work_altitude ? ' ('+item.work_altitude+')' : '')+'</div>'+
+          '<div><b>作业用途：</b>'+item.work_purpose+'</div>'+
+          '<div><b>申请人：</b>'+item.applicant_name+' 📞 <a href="tel:'+item.applicant_phone+'">'+item.applicant_phone+'</a></div>'+
+          (item.briefing_files && item.briefing_files !== '[]' ? renderBriefingFiles(item.briefing_files) : '')+
+        '</div></div>';
+    }).join('');
+
+    showModal('🚛 我的派车任务 ('+data.length+'条)', cards);
+  });
+}
+
+function renderBriefingFiles(filesJson) {
+  try {
+    var files = JSON.parse(filesJson);
+    if (!files.length) return '';
+    // 收集所有图片URL用于查看器
+    var imgUrls = files.filter(function(u) { return /\.(jpg|jpeg|png|gif|webp)/i.test(u); });
+    var h = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
+    files.forEach(function(url) {
+      if (/\.(jpg|jpeg|png|gif|webp)/i.test(url)) {
+        var idx = imgUrls.indexOf(url);
+        h += '<img src="'+url+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--border)" onclick="event.stopPropagation();showFaultPhotos('+JSON.stringify(imgUrls)+','+idx+')" />';
+      } else {
+        h += '<a href="'+url+'" target="_blank" style="font-size:11px;padding:4px 8px;background:var(--bg);border-radius:4px;text-decoration:none;color:var(--text)">📄 文件</a>';
+      }
+    });
+    return h + '</div>';
+  } catch(e) { return ''; }
+}
+
+// ==================== 调度员：全部记录 ====================
+function showMachineryListAll() {
+  api('/machinery/list-all').then(function(data) {
+    if (!data || !data.length) return alert('暂无用车记录');
+    var rows = '';
+    data.forEach(function(item) {
+      rows += '<tr><td class="order-no">'+item.application_no+'</td><td><span class="tag">'+(MA_TYPE_MAP[item.application_type]||'短期')+'</span></td><td>'+item.applicant_dept+'</td><td>'+(item.vehicle_type || '-')+'</td><td>'+item.applicant_name+'</td><td>'+(item.assigned_plate||'-')+'</td><td>'+(item.driver_name||'-')+'</td><td><span class="tag '+MA_ST_CLS[item.status]+'">'+MA_ST_MAP[item.status]+'</span></td><td>¥'+(item.total_cost||0)+'</td><td>'+(item.created_at||'').slice(0,10)+'</td><td><button class="btn btn-sm btn-s" onclick="showMachineryDetail('+item.id+')">详情</button></td></tr>';
+    });
+    showModal('📊 全部用车记录', '<table><tr><th>编号</th><th>类型</th><th>部门</th><th>所需车型</th><th>申请人</th><th>车辆</th><th>驾驶员</th><th>状态</th><th>费用</th><th>日期</th><th>操作</th></tr>'+rows+'</table>');
+  });
+}
+
+// ==================== 通用详情 ====================
+function showMachineryDetail(id) {
+  api('/machinery/detail/'+id).then(function(item) {
+    if (!item) return;
+    var h = '<div style="line-height:1.8">';
+    h += '<div><b>编号：</b>'+item.application_no+' | <span class="tag '+MA_ST_CLS[item.status]+'">'+MA_ST_MAP[item.status]+'</span> | <span class="tag">'+(MA_TYPE_MAP[item.application_type]||'短期')+'用车</span></div>';
+    h += '<div style="border-top:1px solid var(--border);margin:8px 0"></div>';
+    h += '<div><b>申请部门：</b>'+item.applicant_dept+'</div>';
+    h += '<div><b>申请人：</b>'+item.applicant_name+' | <b>电话：</b>'+item.applicant_phone+'</div>';
+    h += '<div><b>🚜 所需车型：</b><span style="color:var(--primary);font-weight:600">'+(item.vehicle_type || '未指定')+'</span></div>';
+    h += '<div><b>📅 计划用车：</b>'+item.scheduled_start+' — '+item.scheduled_end+'</div>';
+    if (item.status === 'completed' || item.status === 'early_completed') {
+      var actualEnd = item.settlement_end_time || item.actual_end_time;
+      if (actualEnd) {
+        var startTime = item.scheduled_start; if (startTime.includes(' ')) startTime = startTime.split(' ')[1];
+        h += '<div><b>⏱ 实际用车：</b>'+item.scheduled_start+' → '+actualEnd+' <span style="color:var(--warning)">('+item.working_hours+'h)</span></div>';
+      }
+    }
+    h += '<div><b>作业地点：</b>'+item.work_location+(item.work_altitude ? ' | <b>海拔：</b>'+item.work_altitude : '')+'</div>';
+    h += '<div><b>作业用途：</b>'+item.work_purpose+'</div>';
+    h += '<div><b>紧急程度：</b>'+MA_URG_MAP[item.urgency]+' | <b>危险作业：</b>'+(Number(item.is_hazardous)?'<span style="color:var(--danger)">是</span>':'否')+'</div>';
+    if (item.briefing_method) {
+      h += '<div><b>交底方式：</b>'+(item.briefing_method==='attachment'?'📎 附件交底':'👤 现场交底')+'</div>';
+      if (item.briefing_files && item.briefing_files !== '[]') h += '<div><b>交底文件：</b>'+renderBriefingFiles(item.briefing_files)+'</div>';
+    }
+    if (item.assigned_plate) {
+      h += '<div style="border-top:1px solid var(--border);margin:8px 0"></div>';
+      h += '<div style="color:var(--primary)"><b>🚛 指派车辆：</b>'+item.assigned_plate+'（'+item.assigned_vehicle_type+' '+item.assigned_vehicle_model+'）</div>';
+      h += '<div><b>驾驶员：</b>'+(item.driver_name||'-')+' | <b>电话：</b>'+(item.driver_phone||'-')+'</div>';
+      h += '<div><b>调度员：</b>'+(item.dispatcher_name||'-')+'</div><div><b>小时单价：</b>¥'+(item.hourly_rate||0)+'/h</div>';
+    }
+    if (item.status === 'completed' || item.status === 'early_completed') {
+      h += '<div style="border-top:1px solid var(--border);margin:8px 0"></div>';
+      h += '<div style="color:var(--success)"><b>✅ 结算</b></div>';
+      h += '<div><b>工作工时：</b>'+item.working_hours+'h | <b>总费用：</b>¥'+item.total_cost+'</div>';
+    }
+    h += '<div style="border-top:1px solid var(--border);margin:8px 0"></div>';
+    h += '<div style="font-size:12px;color:var(--text2)">申请时间：'+(item.created_at||'').slice(0,16)+' | 更新：'+(item.updated_at||'').slice(0,16)+'</div></div>';
+    showModal('用车详情 — '+item.application_no, h);
+  });
+}
+
+// ==================== 导出Excel ====================
+function exportMachineryCSV() {
+  var df = prompt('开始日期（留空=全部）：', '');
+  if (df === null) return;
+  var dt = prompt('结束日期（留空=全部）：', '');
+  if (dt === null) return;
+  var body = {};
+  if (df) body.date_from = df;
+  if (dt) body.date_to = dt;
+  downloadXLSX('/api/machinery/export-xlsx', body, '工程机械用车导出');
+}
+
+// ==================== 调度员：已派车收益明细 ====================
+var _dispatchedPeriod = 'month'; // 默认本月
+
+function showDispatchedOrders(period) {
+  if (period) _dispatchedPeriod = period;
+  var params = '?period=' + _dispatchedPeriod;
+
+  api('/machinery/dispatched-list' + params).then(function(result) {
+    var data = result.list || [];
+    var stats = result.stats || {};
+
+    var tabLabels = { today:'今日', month:'本月', year:'本年', custom:'自定义' };
+    var tabs = ['today','month','year','custom'].map(function(p) {
+      var active = _dispatchedPeriod === p ? ' style="background:var(--primary);color:#fff"' : '';
+      return '<button class="btn btn-sm"'+active+' onclick="showDispatchedOrders(\''+p+'\')">'+tabLabels[p]+'</button>';
+    }).join(' ');
+
+    var customHtml = '';
+    if (_dispatchedPeriod === 'custom') {
+      customHtml = '<span style="margin-left:8px;font-size:13px">从 <input type="date" id="dispDateFrom" style="width:130px" /> 到 <input type="date" id="dispDateTo" style="width:130px" /> <button class="btn btn-sm btn-p" onclick="showDispatchedOrdersCustom()">查询</button></span>';
+    }
+
+    var summaryHtml = '<div class="stats-grid" style="margin-bottom:12px">'+
+      '<div class="stat-item"><div class="stat-num">'+stats.totalCount+'</div><div class="stat-label">已派车订单</div></div>'+
+      '<div class="stat-item"><div class="stat-num">'+stats.totalHours+'h</div><div class="stat-label">总工时</div></div>'+
+      '<div class="stat-item"><div class="stat-num" style="color:var(--success)">¥'+stats.totalRevenue.toFixed(0)+'</div><div class="stat-label">总收益</div></div>'+
+      '<div class="stat-item" onclick="exportDispatchedCSV()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">📥</div><div class="stat-label">导出数据</div></div>'+
+      '</div>';
+
+    if (!data.length) {
+      return showModal('💰 已派车收益明细',
+        summaryHtml +
+        '<div style="margin-bottom:8px">'+tabs+' '+customHtml+'</div>'+
+        '<div class="empty">暂无已派车订单</div>'
+      );
+    }
+
+    var rows = '';
+    data.forEach(function(item) {
+      var vehicle = (item.assigned_plate || '') + ' ' + (item.assigned_vehicle_type || '') + ' ' + (item.assigned_vehicle_model || '');
+      var workTime = (item.scheduled_start || '') + ' ~ ' + (item.scheduled_end || '');
+      var costDisplay = Number(item.total_cost) > 0 ? '¥' + Number(item.total_cost).toFixed(0) : '-';
+      rows += '<tr>'+
+        '<td>'+(item.created_at||'').slice(0,10)+'</td>'+
+        '<td>'+item.applicant_dept+'</td>'+
+        '<td>'+item.applicant_name+'</td>'+
+        '<td><span style="color:var(--primary);font-weight:600">'+vehicle.trim()+'</span>'+(item.driver_name?'<br><span style="font-size:11px">👤 '+item.driver_name+'</span>':'')+'</td>'+
+        '<td>'+item.work_location+'</td>'+
+        '<td style="font-size:12px">'+workTime+'</td>'+
+        '<td style="font-weight:bold;color:'+(Number(item.total_cost)>0?'var(--success)':'var(--text2)')+'">'+costDisplay+'</td>'+
+        '<td><button class="btn btn-sm btn-s" onclick="showMachineryDetail('+item.id+')">详情</button></td>'+
+        '</tr>';
+    });
+
+    var tableHtml = '<table><tr><th>申请日期</th><th>申请部门</th><th>申请人</th><th>车辆</th><th>作业地点</th><th>作业时间</th><th>产生费用</th><th>操作</th></tr>'+rows+'</table>';
+
+    showModal('💰 已派车收益明细',
+      summaryHtml +
+      '<div style="margin-bottom:8px">'+tabs+' '+customHtml+'</div>'+
+      tableHtml
+    );
+  });
+}
+
+// 自定义日期查询
+function showDispatchedOrdersCustom() {
+  var df = document.getElementById('dispDateFrom');
+  var dt = document.getElementById('dispDateTo');
+  if (!df || !dt) { alert('请至少选择一个日期'); return; }
+  var dfVal = df.value, dtVal = dt.value;
+  if (!dfVal && !dtVal) { alert('请至少选择一个日期'); return; }
+  var params = [];
+  if (dfVal) params.push('date_from=' + encodeURIComponent(dfVal));
+  if (dtVal) params.push('date_to=' + encodeURIComponent(dtVal));
+  api('/machinery/dispatched-list?' + params.join('&')).then(function(result) {
+    var data = result.list || [];
+    var stats = result.stats || {};
+
+    var summaryHtml = '<div class="stats-grid" style="margin-bottom:12px">'+
+      '<div class="stat-item"><div class="stat-num">'+stats.totalCount+'</div><div class="stat-label">已派车订单</div></div>'+
+      '<div class="stat-item"><div class="stat-num">'+stats.totalHours+'h</div><div class="stat-label">总工时</div></div>'+
+      '<div class="stat-item"><div class="stat-num" style="color:var(--success)">¥'+stats.totalRevenue.toFixed(0)+'</div><div class="stat-label">总收益</div></div>'+
+      '<div class="stat-item" onclick="exportDispatchedCSV()" style="cursor:pointer"><div class="stat-num" style="color:var(--primary)">📥</div><div class="stat-label">导出数据</div></div>'+
+      '</div>';
+
+    if (!data.length) {
+      var mask = document.querySelector('.modal-mask');
+      if (mask) {
+        var box = mask.querySelector('.modal-box');
+        if (box) box.innerHTML = '<h2>💰 已派车收益明细</h2>' + summaryHtml + '<div class="empty">该日期范围内暂无已派车订单</div>';
+      }
+      return;
+    }
+
+    var rows = '';
+    data.forEach(function(item) {
+      var vehicle = (item.assigned_plate || '') + ' ' + (item.assigned_vehicle_type || '') + ' ' + (item.assigned_vehicle_model || '');
+      var workTime = (item.scheduled_start || '') + ' ~ ' + (item.scheduled_end || '');
+      var costDisplay = Number(item.total_cost) > 0 ? '¥' + Number(item.total_cost).toFixed(0) : '-';
+      rows += '<tr>'+
+        '<td>'+(item.created_at||'').slice(0,10)+'</td>'+
+        '<td>'+item.applicant_dept+'</td>'+
+        '<td>'+item.applicant_name+'</td>'+
+        '<td><span style="color:var(--primary);font-weight:600">'+vehicle.trim()+'</span>'+(item.driver_name?'<br><span style="font-size:11px">👤 '+item.driver_name+'</span>':'')+'</td>'+
+        '<td>'+item.work_location+'</td>'+
+        '<td style="font-size:12px">'+workTime+'</td>'+
+        '<td style="font-weight:bold;color:'+(Number(item.total_cost)>0?'var(--success)':'var(--text2)')+'">'+costDisplay+'</td>'+
+        '<td><button class="btn btn-sm btn-s" onclick="showMachineryDetail('+item.id+')">详情</button></td>'+
+        '</tr>';
+    });
+
+    var tableHtml = '<table><tr><th>申请日期</th><th>申请部门</th><th>申请人</th><th>车辆</th><th>作业地点</th><th>作业时间</th><th>产生费用</th><th>操作</th></tr>'+rows+'</table>';
+
+    var mask = document.querySelector('.modal-mask');
+    if (mask) {
+      var box = mask.querySelector('.modal-box');
+      if (box) box.innerHTML = '<h2>💰 已派车收益明细</h2>' + summaryHtml + tableHtml;
+    }
+  });
+}
+
+// 导出当前已派车收益CSV
+function exportDispatchedCSV() {
+  var params = [];
+  if (_dispatchedPeriod === 'custom') {
+    var df = document.getElementById('dispDateFrom');
+    var dt = document.getElementById('dispDateTo');
+    if (df && df.value) params.push('date_from=' + encodeURIComponent(df.value));
+    if (dt && dt.value) params.push('date_to=' + encodeURIComponent(dt.value));
+  } else {
+    params.push('period=' + _dispatchedPeriod);
+  }
+  var qs = params.length ? '?' + params.join('&') : '';
+
+  var xbody = {};
+  if (_dispatchedPeriod === 'custom') {
+    var df = document.getElementById('dispDateFrom')?.value;
+    var dt = document.getElementById('dispDateTo')?.value;
+    if (df) xbody.date_from = df;
+    if (dt) xbody.date_to = dt;
+  } else if (_dispatchedPeriod) {
+    xbody.period = _dispatchedPeriod;
+  }
+  downloadXLSX('/api/machinery/export-xlsx', xbody, '已派车收益明细');
+}
+
+</script>
+<script>
+(function(){
+  var sx=0,sy=0,tracking=false;
+  document.addEventListener('touchstart',function(e){if(e.touches.length===1){sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=(sx<30)}},{passive:true});
+  document.addEventListener('touchmove',function(e){if(tracking&&e.touches[0].clientX-sx>80&&Math.abs(e.touches[0].clientY-sy)<50){tracking=false;var modals=document.querySelectorAll('.modal-mask');if(modals.length){modals[modals.length-1].remove()}else{history.back()}}},{passive:true});
+  document.addEventListener('touchend',function(){tracking=false},{passive:true});
+})();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(function(){}).catch(function(){})}
+</script>
+</body>
+</html>

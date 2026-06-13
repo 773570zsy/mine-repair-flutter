@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>矿山车辆维修管理系统 - 管理后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #001529; color: #fff; padding: 20px 0; }
+    .sidebar .logo { padding: 0 20px 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar .nav-item { padding: 12px 24px; cursor: pointer; transition: background .2s; }
+    .sidebar .nav-item:hover, .sidebar .nav-item.active { background: rgba(255,255,255,0.08); color: #4096ff; }
+    .main { flex: 1; padding: 24px; overflow: auto; }
+    .header { background: #fff; padding: 16px 24px; border-radius: 8px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .page-title { font-size: 18px; font-weight: bold; }
+
+    /* 统计卡片 */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .stat-card .num { font-size: 32px; font-weight: bold; color: #1677ff; }
+    .stat-card .label { font-size: 13px; color: #999; margin-top: 4px; }
+
+    /* 表格 */
+    .panel { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .panel-title { font-size: 16px; font-weight: bold; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #fafafa; padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; font-weight: 500; color: #666; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; }
+    tr:hover td { background: #fafafa; }
+
+    /* 标签 */
+    .tag { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12px; }
+    .tag-warning { background: #fff7e6; color: #d48806; }
+    .tag-danger { background: #fff1f0; color: #cf1322; }
+    .tag-success { background: #f6ffed; color: #389e0d; }
+    .tag-info { background: #e6f4ff; color: #1677ff; }
+
+    /* 按钮 */
+    .btn { display: inline-block; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn-primary { background: #1677ff; color: #fff; }
+    .btn-primary:hover { background: #4096ff; }
+    .btn-sm { padding: 4px 12px; font-size: 12px; }
+    .btn-success { background: #52c41a; color: #fff; }
+    .btn-danger { background: #ff4d4f; color: #fff; }
+
+    /* 表单 */
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 500; }
+    input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; }
+    input:focus, select:focus { border-color: #4096ff; outline: none; box-shadow: 0 0 0 2px rgba(5,145,255,0.1); }
+
+    /* 弹窗 */
+    .modal-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+    .modal { background: #fff; border-radius: 8px; padding: 24px; width: 500px; max-height: 80vh; overflow: auto; box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <!-- 侧边栏 -->
+  <div class="sidebar">
+    <div class="logo">⛏️ 矿山维修管理</div>
+    <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">数据看板</div>
+    <div class="nav-item" data-page="vehicles" onclick="switchPage('vehicles')">车辆管理</div>
+    <div class="nav-item" data-page="users" onclick="switchPage('users')">人员管理</div>
+    <div class="nav-item" data-page="orders" onclick="switchPage('orders')">维修工单</div>
+    <div class="nav-item" data-page="inspections" onclick="switchPage('inspections')">点检记录</div>
+    <div class="nav-item" data-page="shops" onclick="switchPage('shops')">修理厂设置</div>
+  </div>
+
+  <!-- 主内容 -->
+  <div class="main" id="mainContent"></div>
+</div>
+
+<script>
+const API = '/api';
+let currentPage = 'dashboard';
+
+async function api(url, options = {}) {
+  const token = localStorage.getItem('admin_token');
+  const res = await fetch(API + url, {
+    headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+    ...options,
+    body: options.data ? JSON.stringify(options.data) : undefined
+  });
+  const data = await res.json();
+  if (data.code === 401) { alert('请先登录'); return null; }
+  if (data.code !== 200) { alert(data.msg); return null; }
+  return data.data;
+}
+
+async function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+  const main = document.getElementById('mainContent');
+
+  switch (page) {
+    case 'dashboard': await renderDashboard(main); break;
+    case 'vehicles': await renderVehicles(main); break;
+    case 'users': await renderUsers(main); break;
+    case 'orders': await renderOrders(main); break;
+    case 'inspections': await renderInspections(main); break;
+    case 'shops': await renderShops(main); break;
+  }
+}
+
+// ========== 看板 ==========
+async function renderDashboard(el) {
+  const data = await api('/admin/dashboard');
+  const summary = await api('/inspection/today-summary');
+  if (!data) return;
+
+  el.innerHTML = `
+    <div class="header"><span class="page-title">数据看板</span></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="num">${data.totalVehicles}</div><div class="label">总车辆</div></div>
+      <div class="stat-card"><div class="num">${data.normalVehicles}</div><div class="label">正常车辆</div></div>
+      <div class="stat-card"><div class="num" style="color:#cf1322">${data.repairingCount}</div><div class="label">维修中</div></div>
+      <div class="stat-card"><div class="num" style="color:#d48806">${data.pendingApprovalCount}</div><div class="label">待审批</div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="num">${data.monthCount}</div><div class="label">本月报修</div></div>
+      <div class="stat-card"><div class="num" style="color:#cf1322">¥${data.monthlyCost}</div><div class="label">本月维修费用</div></div>
+      <div class="stat-card"><div class="num">${summary?.inspectedCount || 0}</div><div class="label">今日已点检</div></div>
+      <div class="stat-card"><div class="num" style="color:#cf1322">${summary?.uninspectedCount || 0}</div><div class="label">今日未点检</div></div>
+    </div>
+    ${(summary?.uninspected||[]).length ? `
+    <div class="panel">
+      <div class="panel-title">今日未点检车辆</div>
+      <table><tr><th>车牌号</th><th>类型</th><th>驾驶员</th></tr>
+      ${summary.uninspected.map(v => `<tr><td>${v.plate_number}</td><td>${v.vehicle_type||''}</td><td>${v.driver_name||''}</td></tr>`).join('')}
+      </table>
+    </div>` : ''}
+  `;
+}
+
+// ========== 车辆管理 ==========
+async function renderVehicles(el) {
+  const vehicles = await api('/vehicles');
+  if (!vehicles) return;
+
+  el.innerHTML = `
+    <div class="header"><span class="page-title">车辆管理</span><button class="btn btn-primary btn-sm" onclick="showImportVehicles()">批量导入</button></div>
+    <div class="panel">
+      <table><tr><th>车牌号</th><th>类型</th><th>型号</th><th>驾驶员</th><th>状态</th><th>下次保养</th><th>操作</th></tr>
+      ${vehicles.map(v => `
+        <tr>
+          <td><b>${v.plate_number}</b></td>
+          <td>${v.vehicle_type||'-'}</td><td>${v.model||'-'}</td>
+          <td>${v.driver_name||'<span style="color:#999">未分配</span>'}</td>
+          <td><span class="tag tag-${v.status==='normal'?'success':v.status==='repairing'?'warning':'danger'}">${v.status==='normal'?'正常':v.status==='repairing'?'维修中':'报废'}</span></td>
+          <td>${v.next_maintenance_date||'-'}</td>
+          <td><button class="btn btn-primary btn-sm" onclick="showBindVehicle(${v.id},'${v.plate_number}')">绑定驾驶员</button></td>
+        </tr>`).join('')}
+      </table>
+    </div>
+  `;
+}
+
+function showBindVehicle(vehicleId, plate) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-mask';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>绑定驾驶员 - ${plate}</h3>
+      <div class="form-group"><label>选择驾驶员</label><select id="driverSelect"></select></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button class="btn" onclick="this.closest('.modal-mask').remove()">取消</button>
+        <button class="btn btn-primary" onclick="doBindVehicle(${vehicleId}, document.getElementById('driverSelect').value)">绑定</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  api('/admin/users?role=driver').then(drivers => {
+    const sel = modal.querySelector('#driverSelect');
+    drivers.forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
+  });
+}
+
+async function doBindVehicle(vehicleId, driverId) {
+  if (!driverId) return alert('请选择驾驶员');
+  await api('/admin/vehicles/bind', { method: 'POST', data: { vehicle_id: vehicleId, driver_id: Number(driverId) } });
+  location.reload();
+}
+
+function showImportVehicles() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-mask';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>批量导入车辆</h3>
+      <p style="color:#999;margin:8px 0">每行一条：车牌号,类型,型号（用逗号分隔）</p>
+      <textarea id="importData" rows="10" placeholder="示例：&#10;云A-00123,挖掘机,小松PC200&#10;云A-00456,矿用卡车,北重TR100"></textarea>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px">
+        <button class="btn" onclick="this.closest('.modal-mask').remove()">取消</button>
+        <button class="btn btn-primary" onclick="doImportVehicles()">导入</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function doImportVehicles() {
+  const text = document.getElementById('importData').value.trim();
+  if (!text) return alert('请输入数据');
+  const vehicles = text.split('\n').filter(l => l.trim()).map(line => {
+    const [plate_number, vehicle_type, model] = line.split(',');
+    return { plate_number: plate_number.trim(), vehicle_type: (vehicle_type||'').trim(), model: (model||'').trim() };
+  });
+  await api('/admin/vehicles/import', { method: 'POST', data: { vehicles } });
+  location.reload();
+}
+
+// ========== 人员管理 ==========
+async function renderUsers(el) {
+  const users = await api('/admin/users');
+  if (!users) return;
+
+  const roleMap = { driver:'驾驶员', repair_shop:'修理厂', leader:'领导', admin:'管理员' };
+  el.innerHTML = `
+    <div class="header"><span class="page-title">人员管理</span><button class="btn btn-primary btn-sm" onclick="showAddUser()">添加人员</button></div>
+    <div class="panel">
+      <table><tr><th>姓名</th><th>手机号</th><th>角色</th><th>状态</th><th>注册时间</th></tr>
+      ${users.map(u => `
+        <tr>
+          <td><b>${u.name}</b></td><td>${u.phone||'-'}</td>
+          <td><span class="tag tag-info">${roleMap[u.role]||u.role}</span></td>
+          <td><span class="tag tag-${u.status?'success':'danger'}">${u.status?'正常':'禁用'}</span></td>
+          <td>${u.created_at}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+  `;
+}
+
+function showAddUser() {
+  api('/admin/repair-shops').then(shops => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-mask';
+    modal.innerHTML = `
+      <div class="modal">
+        <h3>添加人员</h3>
+        <div class="form-group"><label>姓名</label><input id="uname" /></div>
+        <div class="form-group"><label>手机号</label><input id="uphone" /></div>
+        <div class="form-group"><label>角色</label><select id="urole"><option value="driver">驾驶员</option><option value="repair_shop">修理厂</option><option value="leader">领导</option></select></div>
+        <div class="form-group" id="shopGroup" style="display:none"><label>所属修理厂</label><select id="ushop">${shops.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button class="btn" onclick="this.closest('.modal-mask').remove()">取消</button>
+          <button class="btn btn-primary" onclick="doAddUser()">添加</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('urole').onchange = function() {
+      document.getElementById('shopGroup').style.display = this.value === 'repair_shop' ? '' : 'none';
+    };
+  });
+}
+
+async function doAddUser() {
+  const name = document.getElementById('uname').value.trim();
+  const phone = document.getElementById('uphone').value.trim();
+  const role = document.getElementById('urole').value;
+  const repair_shop_id = role === 'repair_shop' ? Number(document.getElementById('ushop').value) : null;
+  if (!name) return alert('请填写姓名');
+  await api('/admin/users/add', { method: 'POST', data: { name, phone, role, repair_shop_id } });
+  location.reload();
+}
+
+// ========== 工单管理 ==========
+async function renderOrders(el) {
+  const data = await api('/repair/all-orders?pageSize=100');
+  if (!data) return;
+
+  const statusMap = { pending_accept:'待接单', pending_quote:'待报价', pending_approval:'待审批', approved:'已通过', rejected:'已驳回', repairing:'维修中', completed:'待验收', accepted:'已完成' };
+  el.innerHTML = `
+    <div class="header"><span class="page-title">维修工单</span></div>
+    <div class="panel">
+      <table><tr><th>工单号</th><th>车辆</th><th>报修人</th><th>修理厂</th><th>报价</th><th>状态</th><th>时间</th></tr>
+      ${data.list.map(o => `
+        <tr>
+          <td><b>${o.order_no}</b></td>
+          <td>${o.plate_number}</td>
+          <td>${o.driver_name||'-'}</td>
+          <td>${o.repair_shop_name||'-'}</td>
+          <td style="color:#cf1322">${o.quote_amount ? '¥'+o.quote_amount : '-'}</td>
+          <td><span class="tag tag-${['pending_accept','pending_quote'].includes(o.status)?'warning':['pending_approval','rejected'].includes(o.status)?'danger':['approved','repairing'].includes(o.status)?'info':'success'}">${statusMap[o.status]||o.status}</span></td>
+          <td>${o.created_at}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+  `;
+}
+
+// ========== 点检记录 ==========
+async function renderInspections(el) {
+  const today = new Date().toISOString().slice(0, 10);
+  const records = await api(`/inspection/all-records?date=${today}&pageSize=200`);
+  el.innerHTML = `
+    <div class="header"><span class="page-title">每日点检记录</span><span style="color:#999">${today}</span></div>
+    <div class="panel">
+      <table><tr><th>车辆</th><th>检查人</th><th>油位</th><th>冷却液</th><th>轮胎</th><th>状态</th><th>异常说明</th><th>操作</th></tr>
+      ${(records||[]).map(r => {
+        const lm = { normal:'正常', low:'偏低', empty:'需补充' };
+        return `
+        <tr>
+          <td><b>${r.plate_number}</b></td><td>${r.driver_name}</td>
+          <td>${lm[r.oil_level]||'-'}</td><td>${lm[r.coolant_level]||'-'}</td><td>${r.tire_condition==='normal'?'正常':r.tire_condition==='worn'?'磨损':'损坏'}</td>
+          <td><span class="tag tag-${r.overall_status==='normal'?'success':'danger'}">${r.overall_status==='normal'?'正常':'异常'}</span></td>
+          <td>${r.abnormal_desc||'-'}</td>
+          <td><button class="btn btn-sm" style="background:var(--gold);color:#1a1d23" onclick="event.stopPropagation();showInspectionDetail(${r.id})">📷</button></td>
+        </tr>`;
+      }).join('')}
+    </table></div>
+  `;
+}
+
+// ========== 修理厂 ==========
+async function renderShops(el) {
+  const shops = await api('/admin/repair-shops');
+  el.innerHTML = `
+    <div class="header"><span class="page-title">修理厂设置</span><button class="btn btn-primary btn-sm" onclick="showAddShop()">添加</button></div>
+    <div class="panel">
+      <table><tr><th>名称</th><th>联系人</th><th>联系电话</th><th>分工说明</th></tr>
+      ${(shops||[]).map(s => `
+        <tr><td><b>${s.name}</b></td><td>${s.contact_person||'-'}</td><td>${s.contact_phone||'-'}</td><td>${s.remark||'-'}</td></tr>`).join('')}
+    </table></div>
+  `;
+}
+
+function showAddShop() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-mask';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>添加修理厂</h3>
+      <div class="form-group"><label>名称</label><input id="sname" /></div>
+      <div class="form-group"><label>联系人</label><input id="sperson" /></div>
+      <div class="form-group"><label>联系电话</label><input id="sphone" /></div>
+      <div class="form-group"><label>分工说明</label><input id="sremark" /></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button class="btn" onclick="this.closest('.modal-mask').remove()">取消</button>
+        <button class="btn btn-primary" onclick="doAddShop()">添加</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function doAddShop() {
+  const name = document.getElementById('sname').value.trim();
+  if (!name) return alert('请填写名称');
+  await api('/admin/repair-shops/add', {
+    method: 'POST',
+    data: { name, contact_person: document.getElementById('sperson').value, contact_phone: document.getElementById('sphone').value, remark: document.getElementById('sremark').value }
+  });
+  location.reload();
+}
+
+// 初始加载
+switchPage('dashboard');
+</script>
+<script src="/modules/photo_viewer.js"></script>
+<script src="/modules/inspection.js"></script>
+</body>
+</html>
