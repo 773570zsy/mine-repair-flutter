@@ -6,6 +6,7 @@ import app from './app';
 import { initDB, getDB } from './db';
 import config from './config';
 import logger from './utils/logger';
+import { startAutoCleanup } from './services/cleanup.service';
 
 function start() {
   initDB();
@@ -64,7 +65,7 @@ function start() {
 
   // 每日自动备份，保留最近7份
   const BACKUP_DIR = path.join(__dirname, '../data/backups');
-  const MAX_BACKUPS = 7;
+  const MAX_BACKUPS = 3;
   const autoBackup = () => {
     try {
       if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -85,6 +86,9 @@ function start() {
   };
   autoBackup();
   setInterval(autoBackup, 24 * 60 * 60 * 1000);
+
+  // 上传文件自动清理（启动30秒后首次，之后每小时一次）
+  startAutoCleanup();
 
   // 优雅退出
   const shutdown = () => {

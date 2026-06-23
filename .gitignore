@@ -53,3 +53,7 @@ backend/data/*.db-shm
 backend/data/backups/
 backend/.env
 *.log
+
+# Android signing keys (do NOT commit!)
+android/app/*.jks
+android/key.properties

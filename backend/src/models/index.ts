@@ -22,6 +22,7 @@ export interface JwtPayload {
   role: UserRole;
   repair_shop_id: number | null;
   department_id: number | null;
+  jti?: string;
 }
 
 export interface Vehicle {

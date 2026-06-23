@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import config from '../config';
 import { JwtPayload, UserRole } from '../models';
+import { authService } from '../services/auth.service';
 
 // 扩展 Express Request 类型
 declare global {
@@ -24,6 +25,11 @@ export function auth(req: Request, res: Response, next: NextFunction): void {
 
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
+    // 检查会话是否仍有效（同端登录互踢后旧token失效）
+    if (decoded.jti && !authService.isSessionValid(decoded.jti)) {
+      res.status(401).json({ code: 401, msg: '账号已在其他设备登录，请重新登录' });
+      return;
+    }
     req.user = decoded;
     next();
   } catch {

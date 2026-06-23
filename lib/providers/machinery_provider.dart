@@ -2,15 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/machinery.dart';
 import '../services/machinery_service.dart';
 import 'auth_provider.dart';
+import 'ticker.dart';
 
 /// Service singleton
 final machineryServiceProvider = Provider<MachineryService>((ref) => MachineryService());
 
 // ==================== 申请方 ====================
 
-/// 我的申请列表
+/// 我的申请列表（30秒自动刷新）
 final myMachineryApplicationsProvider = FutureProvider<List<MachineryApplication>>((ref) {
   ref.watch(authProvider); // 账号切换时重新拉取
+  ref.watch(listTickerProvider);
   return ref.read(machineryServiceProvider).getMyApplications();
 });
 
@@ -28,9 +30,10 @@ final machineryCostStatsProvider = FutureProvider<MachineryCostStats>((ref) {
 
 // ==================== 调度员 ====================
 
-/// 待指派列表（含资源统计）
+/// 待指派列表（含资源统计，30秒自动刷新）
 final machineryPendingListProvider = FutureProvider<Map<String, dynamic>>((ref) {
   ref.watch(authProvider); // 账号切换时重新拉取
+  ref.watch(listTickerProvider);
   return ref.read(machineryServiceProvider).getPendingList();
 });
 
@@ -91,6 +94,7 @@ class MachineryActions {
     String? urgency,
     String? briefingMethod,
     List<String>? briefingFiles,
+    String? feeProvider,
   }) async {
     final msg = await _service.submitApplication(
       applicantDept: applicantDept,
@@ -107,6 +111,7 @@ class MachineryActions {
       urgency: urgency,
       briefingMethod: briefingMethod,
       briefingFiles: briefingFiles,
+      feeProvider: feeProvider,
     );
     _ref.invalidate(myMachineryApplicationsProvider);
     return msg;

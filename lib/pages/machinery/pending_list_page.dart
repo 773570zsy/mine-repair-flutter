@@ -8,6 +8,7 @@ import '../../models/machinery.dart';
 import '../../services/machinery_service.dart';
 import '../../providers/machinery_provider.dart';
 import '../../providers/repair_provider.dart';
+import '../../widgets/silent_auto_refresh.dart';
 
 import '../../config/color_constants.dart';
 
@@ -30,6 +31,12 @@ class _PendingListPageState extends ConsumerState<PendingListPage> {
       appBar: AppBar(
         title: const Text('待指派申请'), backgroundColor: AppColors.surface, foregroundColor: AppColors.text, elevation: 0,
         actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.history, size: 16, color: AppColors.gold),
+            label: const Text('历史指派', style: TextStyle(color: AppColors.gold, fontSize: 12)),
+            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10)),
+            onPressed: () => context.push('/machinery/assigned-history'),
+          ),
           TextButton.icon(
             icon: const Icon(Icons.assignment, size: 16, color: AppColors.gold),
             label: const Text('生成今日已指派', style: TextStyle(color: AppColors.gold, fontSize: 12)),
@@ -82,17 +89,21 @@ class _PendingListPageState extends ConsumerState<PendingListPage> {
               ),
 
             Expanded(
-              child: list.isEmpty
-                  ? const Center(child: Text('暂无待指派申请', style: TextStyle(color: AppColors.text2)))
-                  : RefreshIndicator(
-                      color: AppColors.gold,
-                      onRefresh: () async { ref.invalidate(machineryPendingListProvider); },
-                      child: ListView.builder(
+              child: SilentAutoRefresh(
+                intervalSeconds: 20,
+                onRefresh: (r) => r.invalidate(machineryPendingListProvider),
+                child: list.isEmpty
+                    ? const Center(child: Text('暂无待指派申请', style: TextStyle(color: AppColors.text2)))
+                    : RefreshIndicator(
+                        color: AppColors.gold,
+                        onRefresh: () async { ref.invalidate(machineryPendingListProvider); },
+                        child: ListView.builder(
                         padding: const EdgeInsets.all(10),
                         itemCount: list.length,
                         itemBuilder: (ctx, i) => _buildCard(context, list[i]),
                       ),
                     ),
+              ),
             ),
           ]);
         },

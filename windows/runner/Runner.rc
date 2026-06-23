@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.julong" "\0"
-            VALUE "FileDescription", "mine_repair_flutter" "\0"
+                        VALUE "FileDescription", "总调度室综合管理" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mine_repair_flutter" "\0"
+            VALUE "InternalName", "总调度室综合管理" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.julong. All rights reserved." "\0"
             VALUE "OriginalFilename", "mine_repair_flutter.exe" "\0"
-            VALUE "ProductName", "mine_repair_flutter" "\0"
+            VALUE "ProductName", "总调度室综合管理" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

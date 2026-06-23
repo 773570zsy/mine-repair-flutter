@@ -14,9 +14,13 @@ class AdminDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashAsync = ref.watch(adminDashboardProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: dashAsync.when(
+    return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async { ref.invalidate(adminDashboardProvider); },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        child: dashAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
         error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.danger))),
         data: (dash) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -70,11 +74,12 @@ class AdminDashboard extends ConsumerWidget {
             FeatureCardWide(icon: Icons.timer_outlined, title: '员工作业工时', subtitle: '工时/公里/加油统计导出', onTap: () => context.push('/inspection/work-hours'), borderColor: AppColors.gold),
             FeatureCardWide(icon: Icons.save_alt, title: '系统配置', subtitle: '油价/台班/阈值', onTap: () => context.push('/admin/config'), borderColor: AppColors.gold),
             FeatureCardWide(icon: Icons.agriculture, title: '用车审批', subtitle: '工程机械派车', onTap: () => context.push('/machinery/pending'), borderColor: AppColors.gold),
+            FeatureCardWide(icon: Icons.analytics_outlined, title: '申请分析', subtitle: '车型趋势+车辆排名', onTap: () => context.push('/machinery/application-analysis'), borderColor: AppColors.gold),
             FeatureCardWide(icon: Icons.report_problem, title: '隐患闭环', subtitle: '上报整改确认', onTap: () => context.push('/hazard/list'), borderColor: AppColors.gold),
             FeatureCardWide(icon: Icons.cloud, title: '天气预警', subtitle: '矿区天气/预警管理', onTap: () => context.push('/weather'), borderColor: AppColors.gold),
           ]),
         ]),
       ),
-    );
+    ));
   }
 }

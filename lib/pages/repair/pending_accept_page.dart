@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/repair_provider.dart';
+import '../../widgets/silent_auto_refresh.dart';
 import 'order_list_common.dart';
 
 class PendingAcceptPage extends ConsumerWidget {
@@ -18,10 +19,13 @@ class PendingAcceptPage extends ConsumerWidget {
         foregroundColor: const Color(0xFFd0d4dc),
         elevation: 0,
       ),
-      body: RefreshIndicator(
-        color: const Color(0xFFc8a04a),
-        onRefresh: () async => ref.invalidate(pendingAcceptProvider),
-        child: ordersAsync.when(
+      body: SilentAutoRefresh(
+        intervalSeconds: 20,
+        onRefresh: (r) => r.invalidate(pendingAcceptProvider),
+        child: RefreshIndicator(
+          color: const Color(0xFFc8a04a),
+          onRefresh: () async => ref.invalidate(pendingAcceptProvider),
+          child: ordersAsync.when(
           loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFc8a04a))),
           error: (e, _) => Center(
             child: Column(
@@ -81,6 +85,6 @@ class PendingAcceptPage extends ConsumerWidget {
           },
         ),
       ),
-    );
+    ));
   }
 }

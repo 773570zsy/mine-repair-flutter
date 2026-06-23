@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -68,6 +69,8 @@ import '../pages/machinery/cost_stats_page.dart';
 import '../pages/machinery/dispatched_page.dart';
 import '../pages/machinery/dispatch_export_page.dart';
 import '../pages/machinery/kanban_page.dart';
+import '../pages/machinery/assigned_history_page.dart';
+import '../pages/machinery/application_analysis_page.dart';
 // 单车核算
 import '../pages/ledger/ledger_home_page.dart';
 import '../pages/ledger/monthly_ledger_page.dart';
@@ -91,11 +94,18 @@ import '../pages/admin/backup_page.dart';
 import '../pages/admin/config_page.dart';
 import '../pages/admin/quiz_page.dart';
 
+/// 全局 Router 引用，供 JPush 通知点击跳转使用
+GoRouter? globalRouter;
+
+/// 全局导航 Key，供 JPush 通知点击跳转使用
+final navigatorKey = GlobalKey<NavigatorState>();
+
 /// GoRouter 完整路由配置
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
-  return GoRouter(
+  final router = GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/login',
     redirect: (context, state) {
       final isLoggedIn = authState.isLoggedIn;
@@ -238,6 +248,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/machinery/dispatched', builder: (c, s) => const DispatchedPage()),
       GoRoute(path: '/machinery/dispatch-export', builder: (c, s) => const DispatchExportPage()),
       GoRoute(path: '/machinery/kanban', builder: (c, s) => const DispatchKanbanPage()),
+      GoRoute(path: '/machinery/assigned-history', builder: (c, s) => const AssignedHistoryPage()),
+      GoRoute(path: '/machinery/application-analysis', builder: (c, s) => const ApplicationAnalysisPage()),
       GoRoute(path: '/machinery/driver-tasks', builder: (c, s) => const DriverTasksPage()),
 
       // ========== 单车核算 ==========
@@ -264,4 +276,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/dev/export-icon', builder: (c, s) => const IconExportPage()),
     ],
   );
+  globalRouter = router;
+  return router;
 });

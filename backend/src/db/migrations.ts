@@ -44,9 +44,22 @@ export const COLUMN_MIGRATIONS = [
   "ALTER TABLE vehicle_archives ADD COLUMN purchase_date TEXT DEFAULT ''",
   'ALTER TABLE vehicle_archives ADD COLUMN hourly_rate REAL DEFAULT 0',
   'ALTER TABLE vehicle_archives ADD COLUMN asset_value REAL DEFAULT 0',
+  'ALTER TABLE daily_inspections ADD COLUMN evening_check_count INTEGER DEFAULT 0',
+  "ALTER TABLE machinery_applications ADD COLUMN fee_provider TEXT DEFAULT ''",
+  "ALTER TABLE daily_inspections ADD COLUMN mental_state TEXT DEFAULT ''",
+  "ALTER TABLE daily_inspections ADD COLUMN ppe_wearing TEXT DEFAULT ''",
+  'ALTER TABLE daily_inspections ADD COLUMN blood_pressure_high INTEGER DEFAULT 0',
+  'ALTER TABLE daily_inspections ADD COLUMN blood_pressure_low INTEGER DEFAULT 0',
 ];
 
 export const TABLE_MIGRATIONS = [
+  `CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    device_type TEXT NOT NULL CHECK(device_type IN ('pc','mobile')),
+    jti TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
   `CREATE TABLE IF NOT EXISTS safety_incidents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     vehicle_id INTEGER,

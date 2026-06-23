@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/machinery.dart';
 import '../../providers/machinery_provider.dart';
 import '../../providers/repair_provider.dart';
+import '../../widgets/silent_auto_refresh.dart';
 
 import '../../config/color_constants.dart';
 
@@ -173,15 +174,19 @@ class _AllApplicationsPageState extends ConsumerState<AllApplicationsPage> {
             if (display.isEmpty) {
               return const Center(child: Text('暂无申请记录', style: TextStyle(color: AppColors.text2)));
             }
-            return RefreshIndicator(
-              color: AppColors.gold,
-              onRefresh: () async => ref.invalidate(machineryAllApplicationsProvider),
-              child: ListView.builder(
+            return SilentAutoRefresh(
+              intervalSeconds: 20,
+              onRefresh: (r) => r.invalidate(machineryAllApplicationsProvider),
+              child: RefreshIndicator(
+                color: AppColors.gold,
+                onRefresh: () async => ref.invalidate(machineryAllApplicationsProvider),
+                child: ListView.builder(
                 padding: const EdgeInsets.all(10),
                 itemCount: display.length,
                 itemBuilder: (ctx, i) => _buildRow(context, display[i]),
               ),
-            );
+            ),
+          );
           },
         )),
       ]),

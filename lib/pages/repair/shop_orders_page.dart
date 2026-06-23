@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/repair_provider.dart';
+import '../../widgets/silent_auto_refresh.dart';
 import 'order_list_common.dart';
 
 class ShopOrdersPage extends ConsumerStatefulWidget {
@@ -25,14 +26,17 @@ class _ShopOrdersPageState extends ConsumerState<ShopOrdersPage> {
         foregroundColor: const Color(0xFFd0d4dc),
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          _buildStatusFilter(),
-          Expanded(
-            child: RefreshIndicator(
-              color: const Color(0xFFc8a04a),
-              onRefresh: () async => ref.invalidate(shopOrdersProvider(_statusFilter)),
-              child: ordersAsync.when(
+      body: SilentAutoRefresh(
+        intervalSeconds: 20,
+        onRefresh: (r) => r.invalidate(shopOrdersProvider),
+        child: Column(
+          children: [
+            _buildStatusFilter(),
+            Expanded(
+              child: RefreshIndicator(
+                color: const Color(0xFFc8a04a),
+                onRefresh: () async => ref.invalidate(shopOrdersProvider(_statusFilter)),
+                child: ordersAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFc8a04a))),
                 error: (e, _) => Center(child: Text('加载失败: $e', style: const TextStyle(color: Color(0xFFe05555)))),
                 data: (orders) => SingleChildScrollView(
@@ -44,7 +48,7 @@ class _ShopOrdersPageState extends ConsumerState<ShopOrdersPage> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildStatusFilter() {

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/repair_order.dart';
 import '../../providers/repair_provider.dart';
+import '../../providers/admin_provider.dart';
+import '../../widgets/silent_auto_refresh.dart';
 
 class PendingApprovalPage extends ConsumerWidget {
   const PendingApprovalPage({super.key});
@@ -17,11 +19,14 @@ class PendingApprovalPage extends ConsumerWidget {
         backgroundColor: const Color(0xFF1a1a2e),
         foregroundColor: Colors.white,
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(pendingApprovalProvider);
-        },
-        child: ordersAsync.when(
+      body: SilentAutoRefresh(
+        intervalSeconds: 20,
+        onRefresh: (r) => r.invalidate(pendingApprovalProvider),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(pendingApprovalProvider);
+          },
+          child: ordersAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(
             child: Column(
@@ -59,7 +64,7 @@ class PendingApprovalPage extends ConsumerWidget {
           },
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -215,6 +220,7 @@ class _ApprovalCard extends ConsumerWidget {
           const SnackBar(content: Text('审批通过')),
         );
         ref.invalidate(pendingApprovalProvider);
+        ref.invalidate(adminDashboardProvider);
       }
     } catch (e) {
       if (context.mounted) {
@@ -265,6 +271,7 @@ class _ApprovalCard extends ConsumerWidget {
                     const SnackBar(content: Text('已驳回')),
                   );
                   ref.invalidate(pendingApprovalProvider);
+                  ref.invalidate(adminDashboardProvider);
                 }
               } catch (e) {
                 if (context.mounted) {

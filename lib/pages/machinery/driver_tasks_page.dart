@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/machinery.dart';
 import '../../providers/machinery_provider.dart';
+import '../../widgets/silent_auto_refresh.dart';
 
 import '../../config/color_constants.dart';
 
@@ -61,18 +62,25 @@ class _DriverTasksPageState extends ConsumerState<DriverTasksPage>
       error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.danger))),
       data: (list) => list.isEmpty
           ? const Center(child: Text('暂无任务', style: TextStyle(color: AppColors.text2)))
-          : RefreshIndicator(
-              color: AppColors.gold,
-              onRefresh: () async {
-                ref.invalidate(driverTasksProvider);
-                ref.invalidate(driverHistoryProvider);
+          : SilentAutoRefresh(
+              intervalSeconds: 20,
+              onRefresh: (r) {
+                r.invalidate(driverTasksProvider);
+                r.invalidate(driverHistoryProvider);
               },
-              child: ListView.builder(
+              child: RefreshIndicator(
+                color: AppColors.gold,
+                onRefresh: () async {
+                  ref.invalidate(driverTasksProvider);
+                  ref.invalidate(driverHistoryProvider);
+                },
+                child: ListView.builder(
                 padding: const EdgeInsets.all(10),
                 itemCount: list.length,
                 itemBuilder: (ctx, i) => _buildCard(context, list[i]),
               ),
             ),
+          ),
     );
   }
 

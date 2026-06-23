@@ -17,9 +17,16 @@ class SafetyOfficerDashboard extends ConsumerWidget {
     final hazardsAsync = ref.watch(hazardListProvider(null));
     final assessmentsAsync = ref.watch(assessmentListProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async {
+        ref.invalidate(hazardListProvider);
+        ref.invalidate(assessmentListProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // 统计网格（从 hazards 直接计算，不依赖 alerts API）
         hazardsAsync.when(
           loading: () => _statsRow([_stat('...', '加载中', Icons.hourglass_empty)]),
@@ -49,7 +56,7 @@ class SafetyOfficerDashboard extends ConsumerWidget {
         // 隐患通报 Tab 列表
         SafetyTabCard(hazardsAsync: hazardsAsync, assessmentsAsync: assessmentsAsync, pageContext: pageContext),
       ]),
-    );
+    ));
   }
 
   Widget _statsRow(List<Widget> items) {

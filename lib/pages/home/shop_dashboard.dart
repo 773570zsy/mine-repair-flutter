@@ -35,7 +35,14 @@ class _ShopDashboardState extends ConsumerState<ShopDashboard> {
     final shopOrdersAsync = ref.watch(shopOrdersProvider(_activeTab == 'all' ? null : _activeTab));
     final pendingAcceptAsync = ref.watch(pendingAcceptProvider);
 
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async {
+        ref.invalidate(shopOrdersProvider);
+        ref.invalidate(pendingAcceptProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _buildStats(shopOrdersAsync, pendingAcceptAsync),
@@ -86,7 +93,7 @@ class _ShopDashboardState extends ConsumerState<ShopDashboard> {
           ]),
         ),
       ]),
-    );
+    ));
   }
 
   Widget _buildStats(AsyncValue<List<RepairOrder>> shopAsync, AsyncValue<List<RepairOrder>> pendingAsync) {
@@ -280,7 +287,7 @@ void _acceptOrder(BuildContext ctx, int orderId) {
           onPressed: () async {
             Navigator.pop(c);
             try {
-              await RepairService().acceptOrder(orderId);
+              await RepairService().acceptRepairOrder(orderId);
               if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('接单成功'), backgroundColor: AppColors.success));
             } catch (e) {
               if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppColors.danger));

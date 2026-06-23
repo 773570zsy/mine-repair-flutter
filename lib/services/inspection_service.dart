@@ -48,6 +48,10 @@ class InspectionService {
     double? startHours,
     double? startKm,
     List<String>? photos,
+    String? mentalState,
+    String? ppeWearing,
+    int? bloodPressureHigh,
+    int? bloodPressureLow,
   }) async {
     final resp = await _client.post('/inspection/morning-check', data: {
       'vehicle_id': vehicleId,
@@ -63,6 +67,10 @@ class InspectionService {
       'start_hours': startHours ?? 0,
       'start_km': startKm ?? 0,
       'photos': photos ?? [],
+      'mental_state': mentalState ?? '',
+      'ppe_wearing': ppeWearing ?? '',
+      'blood_pressure_high': bloodPressureHigh ?? 0,
+      'blood_pressure_low': bloodPressureLow ?? 0,
     });
     if (!resp.isSuccess) throw Exception(resp.msg ?? '早检提交失败');
   }

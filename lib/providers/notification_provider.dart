@@ -41,8 +41,8 @@ final notificationListProvider = FutureProvider<NotificationListResult>((ref) {
 
 // ==================== 未读数轮询 ====================
 
-/// 轮询间隔（秒）
-const _pollInterval = Duration(seconds: 30);
+/// 轮询间隔（通知需要快速响应）
+const _pollInterval = Duration(seconds: 5);
 
 class UnreadCountNotifier extends StateNotifier<AsyncValue<int>> {
   final NotificationApi _api;

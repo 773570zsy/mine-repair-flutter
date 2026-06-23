@@ -6,6 +6,7 @@ import '../../models/user.dart';
 import '../../config/constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/repair_provider.dart';
+import '../../providers/admin_provider.dart';
 import 'order_list_common.dart';
 
 // 暗色主题色（与全部工单页面一致）
@@ -17,14 +18,28 @@ import '../../config/color_constants.dart';
 
 
 
-class OrderDetailPage extends ConsumerWidget {
+class OrderDetailPage extends ConsumerStatefulWidget {
   final int orderId;
 
   const OrderDetailPage({super.key, required this.orderId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detailAsync = ref.watch(orderDetailProvider(orderId));
+  ConsumerState<OrderDetailPage> createState() => _OrderDetailPageState();
+}
+
+class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 每次进入详情页强制刷新，避免缓存旧数据
+    Future.microtask(() {
+      ref.invalidate(orderDetailProvider(widget.orderId));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detailAsync = ref.watch(orderDetailProvider(widget.orderId));
     final user = ref.watch(authProvider).user;
 
     return Scaffold(
@@ -44,7 +59,7 @@ class OrderDetailPage extends ConsumerWidget {
               Text('加载失败: $e', style: const TextStyle(color: AppColors.danger)),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => ref.invalidate(orderDetailProvider(orderId)),
+                onPressed: () => ref.invalidate(orderDetailProvider(widget.orderId)),
                 child: const Text('重试', style: TextStyle(color: AppColors.gold)),
               ),
             ],
@@ -395,7 +410,7 @@ class OrderDetailPage extends ConsumerWidget {
             if (user.isDriver && order.canVerify)
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/repair/trial-accept/$orderId'),
+                  onPressed: () => context.push('/repair/trial-accept/${widget.orderId}'),
                   icon: const Icon(Icons.drive_eta),
                   label: const Text('试车验收'),
                   style: ElevatedButton.styleFrom(
@@ -411,7 +426,7 @@ class OrderDetailPage extends ConsumerWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _handleAction(
-                      context, ref, () => ref.read(repairActionsProvider.notifier).acceptRepairOrder(orderId),
+                      context, ref, () => ref.read(repairActionsProvider.notifier).acceptRepairOrder(widget.orderId),
                       '接单成功'),
                   icon: const Icon(Icons.assignment_turned_in),
                   label: const Text('确认接单'),
@@ -429,7 +444,7 @@ class OrderDetailPage extends ConsumerWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () =>
-                        context.push('/repair/submit-quote/$orderId'),
+                        context.push('/repair/submit-quote/${widget.orderId}'),
                     icon: const Icon(Icons.request_quote),
                     label: const Text('提交报价'),
                     style: ElevatedButton.styleFrom(
@@ -444,7 +459,7 @@ class OrderDetailPage extends ConsumerWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () =>
-                        context.push('/repair/update-progress/$orderId'),
+                        context.push('/repair/update-progress/${widget.orderId}'),
                     icon: const Icon(Icons.edit_note),
                     label: const Text('更新进度'),
                   ),
@@ -455,7 +470,7 @@ class OrderDetailPage extends ConsumerWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => context.push(
-                        '/repair/update-progress/$orderId?complete=1'),
+                        '/repair/update-progress/${widget.orderId}?complete=1'),
                     icon: const Icon(Icons.check),
                     label: const Text('完工'),
                     style: ElevatedButton.styleFrom(
@@ -475,7 +490,7 @@ class OrderDetailPage extends ConsumerWidget {
                   onPressed: () => _handleAction(
                       context, ref,
                       () => ref.read(repairActionsProvider.notifier).approveQuote(
-                            orderId: orderId, approved: true),
+                            orderId: widget.orderId, approved: true),
                       '审批通过'),
                   icon: const Icon(Icons.check),
                   label: const Text('通过'),
@@ -502,7 +517,7 @@ class OrderDetailPage extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => _handleAction(
                       context, ref,
-                      () => ref.read(repairActionsProvider.notifier).markUrgent(orderId),
+                      () => ref.read(repairActionsProvider.notifier).markUrgent(widget.orderId),
                       '已标记加急'),
                   icon: const Icon(Icons.priority_high, color: Colors.red),
                   label: const Text('标记加急', style: TextStyle(color: Colors.red)),
@@ -526,12 +541,13 @@ class OrderDetailPage extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(successMsg)));
-        ref.invalidate(orderDetailProvider(orderId));
+        ref.invalidate(orderDetailProvider(widget.orderId));
         // 同时刷新相关列表
         ref.invalidate(pendingAcceptProvider);
         ref.invalidate(pendingApprovalProvider);
         ref.invalidate(myOrdersProvider(null));
         ref.invalidate(shopOrdersProvider(null));
+        ref.invalidate(adminDashboardProvider);
       }
     } catch (e) {
       if (context.mounted) {
@@ -572,7 +588,7 @@ class OrderDetailPage extends ConsumerWidget {
                   Navigator.pop(ctx);
                   await _handleAction(context, ref, () {
                     return ref.read(repairActionsProvider.notifier).approveQuote(
-                          orderId: orderId,
+                          orderId: widget.orderId,
                           approved: false,
                           rejectReason: reason,
                         );

@@ -9,7 +9,7 @@ import crypto from 'crypto';
 
 export class AuthService {
   /** 用户登录 */
-  login(phone: string, rawPassword: string) {
+  login(phone: string, rawPassword: string, deviceType: 'pc' | 'mobile' = 'pc') {
     const user = userRepo.findByPhone(phone);
     if (!user) throw new AppError(404, '用户不存在，请找管理员添加');
     if (user.status === 0) throw new AppError(403, '账号已被禁用');
@@ -35,15 +35,24 @@ export class AuthService {
       }
     }
 
+    const jti = crypto.randomUUID();
+
     const payload: JwtPayload = {
       id: user.id,
       name: user.name,
       role: user.role,
       repair_shop_id: user.repair_shop_id,
       department_id: user.department_id,
+      jti,
     };
 
     const token = jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn } as jwt.SignOptions);
+
+    // 踢掉同端旧会话
+    const db = getDB();
+    db.prepare('DELETE FROM sessions WHERE user_id = ? AND device_type = ?').run(user.id, deviceType);
+    // 创建新会话
+    db.prepare('INSERT INTO sessions (user_id, device_type, jti) VALUES (?, ?, ?)').run(user.id, deviceType, jti);
 
     return {
       token,
@@ -55,6 +64,18 @@ export class AuthService {
         department_id: user.department_id,
       },
     };
+  }
+
+  /** 检查会话是否有效 */
+  isSessionValid(jti: string): boolean {
+    if (!jti) return false;
+    const row = getDB().prepare('SELECT id FROM sessions WHERE jti = ?').get(jti);
+    return !!row;
+  }
+
+  /** 删除会话（登出） */
+  removeSession(jti: string): void {
+    getDB().prepare('DELETE FROM sessions WHERE jti = ?').run(jti);
   }
 
   /** 获取用户绑定信息 */

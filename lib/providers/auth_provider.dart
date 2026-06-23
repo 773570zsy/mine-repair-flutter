@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/http_client.dart';
+import '../services/jpush_service.dart';
 
 /// 认证状态
 class AuthState {
@@ -68,6 +69,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           token: token,
           isLoading: false,
         );
+        // 自动登录后恢复推送
+        _onLoginSuccess(user);
       } else {
         await _client.clearToken();
         state = state.copyWith(isLoading: false);
@@ -95,6 +98,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         bindings: result.bindings,
         isLoading: false,
       );
+      // 登录成功后绑定推送别名 + 角色标签
+      _onLoginSuccess(result.user);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString().replaceFirst('Exception: ', ''));
     }
@@ -102,8 +107,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// 登出
   Future<void> logout() async {
+    // 登出前解绑推送
+    _onLogout();
     await _authService.logout();
     state = const AuthState();
+  }
+
+  // ===== JPush 联动 =====
+
+  /// 登录 / 自动登录成功后：绑定别名 + 角色标签
+  void _onLoginSuccess(User user) {
+    final jpush = JpushService();
+    jpush.resume();
+    // 用手机号作别名，后端可定向推送给特定用户
+    if (user.phone.isNotEmpty) {
+      jpush.setAlias(user.phone);
+    }
+    // 用角色作标签，后端可按角色群推
+    if (user.role.isNotEmpty) {
+      jpush.addTags(['role_${user.role}']);
+    }
+  }
+
+  /// 登出时：停止推送 + 清空绑定
+  void _onLogout() {
+    final jpush = JpushService();
+    jpush.cleanTags();
+    jpush.deleteAlias();
+    jpush.stop();
   }
 
   /// 清除错误

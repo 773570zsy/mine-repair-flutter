@@ -44,7 +44,15 @@ class DriverDashboard extends ConsumerWidget {
 
     final isLoading = vehicles == null || orders == null || records == null;
 
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async {
+        ref.invalidate(myVehiclesProvider);
+        ref.invalidate(myOrdersProvider);
+        ref.invalidate(myRecordsProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // ===== 统计卡片行 =====
@@ -88,7 +96,9 @@ class DriverDashboard extends ConsumerWidget {
           Expanded(child: FeatureCard(icon: Icons.nights_stay, title: '晚检', subtitle: '工时/加油/停车', onTap: () => context.push('/inspection/evening-check'))),
         ]),
         const SizedBox(height: 10),
-        SectionCard(icon: Icons.directions_car, title: '车辆状态总览', content: const VehicleTable()),
+        SectionCard(icon: Icons.directions_car, title: '车辆状态总览',
+          content: VehicleTable(vehicles: vehicles ?? [], onNavigate: (route) => pageContext.push(route)),
+        ),
         const SizedBox(height: 10),
         Row(children: [
           Expanded(child: FeatureCard(icon: Icons.access_time, title: '今日考勤', subtitle: '出勤打卡', onTap: () => context.push('/inspection/attendance'))),
@@ -104,7 +114,7 @@ class DriverDashboard extends ConsumerWidget {
           Expanded(child: FeatureCard(icon: Icons.cloud, title: '天气预警', subtitle: '矿区天气', onTap: () => context.push('/weather'), borderColor: AppColors.gold)),
         ]),
       ]),
-    );
+    ));
   }
 
   Widget _buildStatsRow(int vehicleCount, int activeCount, bool inspectionDone, bool isLoading) {

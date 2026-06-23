@@ -54,6 +54,12 @@ class _AttendanceReportPageState extends ConsumerState<AttendanceReportPage> {
             tooltip: '导出加班记录',
             onPressed: () => _exportOvertime(),
           ),
+          // 血压导出
+          IconButton(
+            icon: const Icon(Icons.monitor_heart_outlined, size: 20, color: AppColors.danger),
+            tooltip: '导出员工历史血压',
+            onPressed: () => _exportBloodPressure(),
+          ),
         ],
       ),
       body: Column(children: [
@@ -384,6 +390,25 @@ class _AttendanceReportPageState extends ConsumerState<AttendanceReportPage> {
           if (_departmentId != null) 'department_id': _departmentId,
         },
         '加班记录_$_month.xlsx',
+      );
+      if (mounted) _snack(path != null ? '已保存: $path' : '导出成功，请检查浏览器下载');
+    } catch (e) {
+      if (mounted) _snack('导出失败: $e');
+    }
+  }
+
+  // ===== 员工历史血压导出 =====
+  Future<void> _exportBloodPressure() async {
+    try {
+      _snack('正在生成血压记录...');
+      final path = await DownloadService.instance.downloadXlsx(
+        '/inspection/export-blood-pressure-xlsx',
+        {
+          'month': _month,
+          if (_driverId != null) 'driver_id': _driverId,
+          if (_departmentId != null) 'department_id': _departmentId,
+        },
+        '员工血压记录_$_month.xlsx',
       );
       if (mounted) _snack(path != null ? '已保存: $path' : '导出成功，请检查浏览器下载');
     } catch (e) {

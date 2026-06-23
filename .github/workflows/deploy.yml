@@ -5,9 +5,8 @@ on:
     branches: [main, master]
 
 jobs:
-  test-and-deploy:
+  backend:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +30,7 @@ jobs:
         working-directory: backend
         run: npm run build
 
-      - name: Deploy to server
+      - name: Deploy backend to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -54,3 +53,43 @@ jobs:
             npm install --omit=dev --no-audit --no-fund
             NODE_ENV=production pm2 restart mine-repair --update-env
             pm2 save
+
+  frontend:
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: 'stable'
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --debug
+
+      - name: Deploy frontend to server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p /opt/mine-repair-app/backend/public/app
+
+      - name: Upload web files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "build/web/*"
+          target: "/opt/mine-repair-app/backend/public/app/"
+          strip_components: 2
+          rm: true
+          overwrite: true

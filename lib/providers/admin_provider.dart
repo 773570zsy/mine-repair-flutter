@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/admin.dart';
 import '../services/admin_service.dart';
+import 'ticker.dart';
 
 final adminServiceProvider = Provider<AdminService>((ref) => AdminService());
 
-// 仪表盘
+// 仪表盘（每15秒自动刷新）
 final adminDashboardProvider = FutureProvider<AdminDashboard>((ref) {
+  ref.watch(dashboardTickerProvider);
   return ref.read(adminServiceProvider).getDashboard();
 });
 

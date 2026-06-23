@@ -1,7 +1,12 @@
 allprojects {
     repositories {
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/gradle-plugins/") }
         google()
         mavenCentral()
+        // 华为 + FCM 厂商通道（启用时取消注释）
+        // maven { url = uri("https://developer.huawei.com/repo/") }
+        // maven { url = uri("https://maven.google.com") }
     }
 }
 

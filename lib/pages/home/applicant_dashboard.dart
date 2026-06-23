@@ -15,7 +15,14 @@ class ApplicantDashboard extends ConsumerWidget {
     final statsAsync = ref.watch(machineryCostStatsProvider);
     final activeAsync = ref.watch(activeMachineryApplicationsProvider);
 
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async {
+        ref.invalidate(machineryCostStatsProvider);
+        ref.invalidate(activeMachineryApplicationsProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _buildStats(statsAsync, activeAsync),
@@ -29,7 +36,7 @@ class ApplicantDashboard extends ConsumerWidget {
             sub: statsAsync.when(data: (d) => '累计 ¥${(d.allTime?.totalCost ?? 0).toStringAsFixed(0)}', loading: () => '加载中...', error: (_, _) => '—'))),
         ]),
       ]),
-    );
+    ));
   }
 
   Widget _buildStats(AsyncValue<MachineryCostStats> statsAsync, AsyncValue<List<MachineryApplication>> activeAsync) {

@@ -121,11 +121,18 @@ class NotificationItem {
     }
   }
 
-  /// 相对时间
+  /// 相对时间（数据库存UTC时间，需先转local再比较）
   String get relativeTime {
     if (createdAt == null) return '';
     try {
-      final dt = DateTime.parse(createdAt!);
+      // better-sqlite3 的 CURRENT_TIMESTAMP 返回 UTC 时间，
+      // 格式为 "YYYY-MM-DD HH:MM:SS"，Dart 默认当本地时间解析，
+      // 在 UTC+8 时区会差 8 小时。显式标记为 UTC 后转本地。
+      final raw = createdAt!.trim();
+      final isoStr = raw.contains('T')
+          ? (raw.endsWith('Z') ? raw : '$raw Z')
+          : '${raw.replaceFirst(' ', 'T')}Z';
+      final dt = DateTime.parse(isoStr).toLocal();
       final now = DateTime.now();
       final diff = now.difference(dt);
       if (diff.inMinutes < 1) return '刚刚';

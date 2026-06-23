@@ -20,7 +20,7 @@ export const submitQuoteSchema = z.object({
   hours_cost: z.number().optional().default(0),
   parts_list: z.array(z.unknown()).optional().default([]),
   quote_detail: z.string().optional().default(''),
-  estimated_days: z.number().optional(),
+  estimated_days: z.number().nullable().optional(),
   damage_photos: z.array(z.string()).optional().default([]),
   new_photos: z.array(z.string()).optional().default([]),
 });

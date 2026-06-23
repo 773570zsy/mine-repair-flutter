@@ -34,6 +34,12 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
   Future<void> _loadData({bool refresh = false}) async {
     if (refresh) {
       setState(() { _page = 1; _orders.clear(); _hasMore = true; });
+      // 强制清除缓存，重新拉取最新数据
+      ref.invalidate(allOrdersProvider(AllOrdersParams(
+        status: _statusFilter,
+        keyword: _searchKeyword,
+        page: 1,
+      )));
     }
     if (!_hasMore && !refresh) return;
 
@@ -123,9 +129,8 @@ class _AllOrdersPageState extends ConsumerState<AllOrdersPage> {
     final filters = [
       {'label': '全部', 'value': null},
       {'label': '待接单', 'value': 'pending_accept'},
-      {'label': '待审批', 'value': 'pending_approval'},
-      {'label': '维修中', 'value': 'repairing'},
-      {'label': '待验收', 'value': 'completed'},
+      {'label': '待审批', 'value': 'pending_quote,pending_approval'},
+      {'label': '维修中', 'value': 'approved,repairing,completed'},
       {'label': '已完成', 'value': 'accepted'},
     ];
     return Container(

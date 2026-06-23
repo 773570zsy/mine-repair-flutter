@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/external_repair_order.dart';
 import '../services/external_repair_service.dart';
+import 'ticker.dart';
 
 final externalRepairServiceProvider = Provider<ExternalRepairService>((ref) => ExternalRepairService());
 
@@ -16,23 +17,27 @@ final externalDepartmentsProvider = FutureProvider<List<Map<String, dynamic>>>((
   return ref.read(externalRepairServiceProvider).getDepartments();
 });
 
-/// 报修人：我的外修单
+/// 报修人：我的外修单（30秒自动刷新）
 final externalMyRequestsProvider = FutureProvider.family<List<ExternalRepairOrder>, String?>((ref, status) async {
+  ref.watch(listTickerProvider);
   return ref.read(externalRepairServiceProvider).getMyRequests(status: status);
 });
 
-/// 修理厂：待接单
+/// 修理厂：待接单（30秒自动刷新）
 final externalPendingAcceptProvider = FutureProvider<List<ExternalRepairOrder>>((ref) async {
+  ref.watch(listTickerProvider);
   return ref.read(externalRepairServiceProvider).getPendingAccept();
 });
 
-/// 修理厂：我的外修工单
+/// 修理厂：我的外修工单（30秒自动刷新）
 final externalShopOrdersProvider = FutureProvider.family<List<ExternalRepairOrder>, String?>((ref, status) async {
+  ref.watch(listTickerProvider);
   return ref.read(externalRepairServiceProvider).getShopOrders(status: status);
 });
 
-/// 领导：待审批
+/// 领导：待审批（30秒自动刷新）
 final externalPendingApprovalProvider = FutureProvider<List<ExternalRepairOrder>>((ref) async {
+  ref.watch(listTickerProvider);
   return ref.read(externalRepairServiceProvider).getPendingApproval();
 });
 

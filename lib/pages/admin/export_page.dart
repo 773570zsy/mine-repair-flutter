@@ -213,7 +213,13 @@ class _OrdersTabState extends ConsumerState<_OrdersTab> {
     return _dd<String?>('', _plateNumber, items, (v) => setState(() => _plateNumber = v));
   }
   Widget _vehicleTypeDropdown(List<VehicleArchive> archives) {
-    final types = archives.map((a) => a.vehicleType).where((t) => t != null && t.isNotEmpty).cast<String?>().toSet().cast<String>().toList()..sort();
+    final typeSet = <String>{};
+    for (final a in archives) {
+      if (a.vehicleType != null && a.vehicleType!.isNotEmpty) {
+        typeSet.add(a.vehicleType!);
+      }
+    }
+    final types = typeSet.toList()..sort();
     final items = [const DropdownMenuItem<String?>(value: null, child: Text('全部车型', style: TextStyle(color: AppColors.text2, fontSize: 12))), ...types.map((t) => DropdownMenuItem<String?>(value: t, child: Text(t, style: const TextStyle(color: AppColors.text, fontSize: 12))))];
     return _dd<String?>('', _vehicleType, items, (v) => setState(() => _vehicleType = v));
   }
@@ -264,11 +270,11 @@ class _OrdersTabState extends ConsumerState<_OrdersTab> {
         if (_departmentId != null) 'department_id': _departmentId,
         if (_driverKeyword.isNotEmpty) 'driver_keyword': _driverKeyword,
       }, '维修工单导出_${DateTime.now().toIso8601String().substring(0, 10)}.xlsx');
-      if (mounted) _snack(path != null ? '已保存: $path' : '导出成功');
+      if (mounted) _snack(path != null ? '已保存到 Downloads 文件夹，可在分享面板中发送或保存' : '导出成功');
     } catch (e) { if (mounted) _snack('导出失败: $e'); }
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), duration: const Duration(seconds: 3)));
 }
 
 // ==================== 维修费用报表Tab ====================
@@ -435,7 +441,13 @@ class _CostTabState extends ConsumerState<_CostTab> {
   }
 
   Widget _costVehicleTypeDropdown(List<VehicleArchive> archives) {
-    final types = archives.map((a) => a.vehicleType).where((t) => t != null && t.isNotEmpty).cast<String?>().toSet().cast<String>().toList()..sort();
+    final typeSet = <String>{};
+    for (final a in archives) {
+      if (a.vehicleType != null && a.vehicleType!.isNotEmpty) {
+        typeSet.add(a.vehicleType!);
+      }
+    }
+    final types = typeSet.toList()..sort();
     final items = [const DropdownMenuItem<String?>(value: null, child: Text('全部车型', style: TextStyle(color: AppColors.text2, fontSize: 12))), ...types.map((t) => DropdownMenuItem<String?>(value: t, child: Text(t, style: const TextStyle(color: AppColors.text, fontSize: 12))))];
     return _costDd<String?>('', _vehicleType, items, (v) => setState(() => _vehicleType = v));
   }
@@ -510,9 +522,9 @@ class _CostTabState extends ConsumerState<_CostTab> {
         if (_vehicleType != null) 'vehicle_type': _vehicleType,
         if (_driverKeyword.isNotEmpty) 'driver_keyword': _driverKeyword,
       }, '维修费用报表_${DateTime.now().toIso8601String().substring(0, 10)}.xlsx');
-      if (mounted) _snack(path != null ? '已保存: $path' : '导出成功');
+      if (mounted) _snack(path != null ? '已保存到 Downloads，可在分享面板发送或保存' : '导出成功');
     } catch (e) { if (mounted) _snack('导出失败: $e'); }
   }
 
-  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  void _snack(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), duration: const Duration(seconds: 3)));
 }

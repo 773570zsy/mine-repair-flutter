@@ -15,6 +15,7 @@ export const machineryApplySchema = z.object({
   urgency: z.string().optional().default('normal'),
   briefing_method: z.string().optional().default('现场'),
   briefing_files: z.string().optional().default(''),
+  fee_provider: z.string().optional().default(''),
 });
 
 export const machineryAssignSchema = z.object({

@@ -18,6 +18,12 @@ class FileSaverWeb implements FileSaver {
     });
     return null;
   }
+
+  /// Web 端：浏览器下载已触发，无需额外分享
+  @override
+  Future<bool> shareFile(String filePath, {String? subject}) async {
+    return false; // Web doesn't need share after download
+  }
 }
 
 /// 工厂函数（供条件导入使用）

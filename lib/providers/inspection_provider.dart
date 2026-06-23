@@ -102,6 +102,10 @@ class InspectionActions extends StateNotifier<AsyncValue<String?>> {
     double? startHours,
     double? startKm,
     List<String>? photos,
+    String? mentalState,
+    String? ppeWearing,
+    int? bloodPressureHigh,
+    int? bloodPressureLow,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -112,6 +116,8 @@ class InspectionActions extends StateNotifier<AsyncValue<String?>> {
         toolkitCheck: toolkitCheck, overallStatus: overallStatus,
         abnormalDesc: abnormalDesc, notes: notes,
         startHours: startHours, startKm: startKm, photos: photos,
+        mentalState: mentalState, ppeWearing: ppeWearing,
+        bloodPressureHigh: bloodPressureHigh, bloodPressureLow: bloodPressureLow,
       );
       state = const AsyncValue.data('早检提交成功');
     } catch (e, st) {

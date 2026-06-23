@@ -9,9 +9,9 @@ const router = Router();
 
 // 登录
 router.post('/login', validate(loginSchema), asyncHandler(async (req: Request, res: Response) => {
-  const { phone, password } = req.body;
+  const { phone, password, device_type } = req.body;
 
-  const data = authService.login(phone, password);
+  const data = authService.login(phone, password, device_type || 'pc');
   const bindings = authService.getBindings(data.user.id, data.user.role);
   const department = authService.getDepartment(data.user.department_id);
 

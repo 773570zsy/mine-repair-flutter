@@ -96,9 +96,10 @@ class NotificationPage extends ConsumerWidget {
     // 根据通知类型导航到对应页面
     if (item.orderId != null) {
       final t = item.type;
-      if (t == 'new_order' || t == 'order_accepted' || t == 'repair_completed') {
+      // 内部维修：新工单、报价待审批/通过/驳回、完工
+      if (t == 'new_order' || t == 'order_accepted' || t == 'repair_completed' || t == 'quote_pending' || t == 'quote_approved' || t == 'quote_rejected' || t == 'urgent') {
         context.push('/repair/detail/${item.orderId}');
-      } else if (t == 'new_external_order' || t == 'quote_pending' || t == 'quote_approved' || t == 'quote_rejected') {
+      } else if (t == 'new_external_order') {
         context.push('/external-repair/detail/${item.orderId}');
       } else if (t == 'machinery_dispatch' || t == 'machinery_assigned' || t == 'new_machinery') {
         context.push('/machinery/detail/${item.orderId}');

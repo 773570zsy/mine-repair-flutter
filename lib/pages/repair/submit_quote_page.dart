@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/api_config.dart';
 import '../../config/color_constants.dart';
 import '../../providers/repair_provider.dart';
+import '../../providers/admin_provider.dart';
 import '../../services/http_client.dart';
 
 /// 修理厂提交报价 — 完全照搬3000版 repair.js showQuote + photos.js
@@ -132,6 +133,9 @@ class _SubmitQuotePageState extends ConsumerState<SubmitQuotePage> {
       if (mounted) {
         _showMsg(widget.isReQuote ? '重新报价已提交' : '报价已提交');
         ref.invalidate(orderDetailProvider(widget.orderId));
+        ref.invalidate(shopOrdersProvider);
+        ref.invalidate(pendingAcceptProvider);
+        ref.invalidate(adminDashboardProvider);
         context.pop();
       }
     } catch (e) {

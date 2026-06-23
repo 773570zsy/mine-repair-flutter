@@ -28,6 +28,7 @@ class _ApplyPageState extends ConsumerState<ApplyPage> {
   String _vehicleType = '';
   String _appType = 'short_term';
   String _urgency = 'normal';
+  String _feeProvider = '';
   bool _isHazardous = false;
   bool _onsiteBriefing = false;
   final _remarkCtrl = TextEditingController();
@@ -146,6 +147,7 @@ class _ApplyPageState extends ConsumerState<ApplyPage> {
         urgency: _urgency,
         briefingMethod: _onsiteBriefing ? '现场交底' : _remarkCtrl.text.trim(),
         briefingFiles: _photos,
+        feeProvider: _feeProvider,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('申请已提交')));
@@ -204,6 +206,11 @@ class _ApplyPageState extends ConsumerState<ApplyPage> {
             Expanded(child: _dropdown('申请类型', _appType, {'short_term': '短期用车', 'long_term': '长期用车'}, (v) => setState(() => _appType = v!))),
             const SizedBox(width: 10),
             Expanded(child: _dropdown('紧急程度', _urgency, {'normal': '普通', 'urgent': '加急', 'emergency': '紧急'}, (v) => setState(() => _urgency = v!))),
+          ]),
+          Row(children: [
+            Expanded(child: _dropdown('费供', _feeProvider, {'party_a': '甲方', 'party_b': '乙方'}, (v) => setState(() => _feeProvider = v!))),
+            const SizedBox(width: 10),
+            const Spacer(),
           ]),
           const SizedBox(height: 20),
 

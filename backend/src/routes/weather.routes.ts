@@ -82,7 +82,7 @@ router.get('/thresholds', auth, asyncHandler(async (req: Request, res: Response)
   let sql = `SELECT t.*, z.zone_name FROM weather_thresholds t LEFT JOIN weather_zones z ON t.zone_id = z.id WHERE 1=1`;
   const params: (string | number)[] = [];
   if (zone_id) { sql += ' AND (t.zone_id = ? OR t.zone_id IS NULL)'; params.push(Number(zone_id)); }
-  sql += ' ORDER BY t.weather_type, CASE t.level WHEN "red" THEN 4 WHEN "orange" THEN 3 WHEN "yellow" THEN 2 WHEN "blue" THEN 1 END DESC';
+  sql += " ORDER BY t.weather_type, CASE t.level WHEN 'red' THEN 4 WHEN 'orange' THEN 3 WHEN 'yellow' THEN 2 WHEN 'blue' THEN 1 END DESC";
   res.json({ code: 200, data: getDB().prepare(sql).all(...params) });
 }));
 

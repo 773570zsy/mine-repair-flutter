@@ -15,6 +15,7 @@ class LeaderDashboard extends ConsumerWidget {
     final dashAsync = ref.watch(adminDashboardProvider);
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(12),
       child: dashAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
@@ -38,6 +39,7 @@ class LeaderDashboard extends ConsumerWidget {
               title: '您有 ${dash.pendingApprovalCount} 条待审批报价',
               subtitle: '点击进入审批页面进行处理',
               color: AppColors.danger,
+              onTap: () => context.push('/repair/pending-approval'),
             )
           else
             AlertCard(

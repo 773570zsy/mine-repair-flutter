@@ -6,6 +6,7 @@ import { sendExcel, ColumnDef } from '../utils/excel';
 import dayjs from 'dayjs';
 import { validate } from '../middleware/validate';
 import { machineryApplySchema, machineryAssignSchema } from '../schemas/machinery.schemas';
+import { sendToUser } from '../services/notification.service';
 
 const router = Router();
 
@@ -17,7 +18,7 @@ router.post('/apply', auth, validate(machineryApplySchema), asyncHandler(async (
     vehicle_type, application_type, scheduled_start, scheduled_end,
     work_location, work_altitude, work_purpose,
     is_hazardous, urgency,
-    briefing_method, briefing_files
+    briefing_method, briefing_files, fee_provider
   } = req.body;
 
   const no = 'PC' + dayjs().format('YYYYMMDD') + String(Date.now()).slice(-4);
@@ -26,8 +27,8 @@ router.post('/apply', auth, validate(machineryApplySchema), asyncHandler(async (
     `INSERT INTO machinery_applications
      (application_no, applicant_id, applicant_dept, applicant_name, applicant_phone,
       vehicle_type, application_type, scheduled_start, scheduled_end, work_location, work_altitude, work_purpose,
-      is_hazardous, urgency, briefing_method, briefing_files)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      is_hazardous, urgency, briefing_method, briefing_files, fee_provider)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(no, req.user.id,
     applicant_dept, applicant_name, applicant_phone,
     vehicle_type || '',
@@ -35,7 +36,8 @@ router.post('/apply', auth, validate(machineryApplySchema), asyncHandler(async (
     scheduled_start, scheduled_end,
     work_location, work_altitude || '', work_purpose,
     is_hazardous ? 1 : 0, urgency || 'normal',
-    briefing_method || '', briefing_files || '[]');
+    briefing_method || '', briefing_files || '[]',
+    fee_provider || '');
 
   res.json({ code: 200, msg: '申请已提交', data: { application_no: no } });
 }));
@@ -92,28 +94,40 @@ router.post('/early-end/:id', auth, asyncHandler(async (req: Request, res: Respo
   const now = dayjs();
   const actualEnd = now.format('HH:mm');
 
-  // 结算结束时间 = min(实际结束, 计划结束) + 30分钟返程路途
+  // 解析计划开始/结束为完整日期时间（格式：YYYY-MM-DD HH:mm 或 HH:mm）
   const scheduledEnd = String(app.scheduled_end || '18:00');
-  const nowMins = parseTimeToMinutes(now.format('HH:mm'));
-  const schedEndMins = parseTimeToMinutes(scheduledEnd);
-  // 取实际结束和计划结束中较小的那个（提前结束不超计划时段）
-  const effectiveEndMins = Math.min(nowMins, schedEndMins);
-  const settlementEndMins = effectiveEndMins + 30;
-  const settlementEnd = `${String(Math.floor(settlementEndMins / 60) % 24).padStart(2, '0')}:${String(settlementEndMins % 60).padStart(2, '0')}`;
-
-  // 计算工作工时
   const scheduledStart = String(app.scheduled_start || '08:00');
-  const startMins = parseTimeToMinutes(scheduledStart);
-  let workMins = settlementEndMins - startMins;
-  if (workMins < 0) workMins += 24 * 60;
-  workMins = Math.max(0, workMins);
-  const workingHours = Math.round(workMins / 60 * 100) / 100;
+  const todayForParse = now.format('YYYY-MM-DD');
+  const schedStartDt = dayjs(scheduledStart.length > 5 ? scheduledStart : `${todayForParse} ${scheduledStart}`);
+  const schedEndDt = dayjs(scheduledEnd.length > 5 ? scheduledEnd : `${todayForParse} ${scheduledEnd}`);
 
-  const totalCost = Math.round(workingHours * (Number(app.hourly_rate) || 0) * 100) / 100;
+  let workingHours = 0;
+  let totalCost = 0;
+  let settlementEnd = actualEnd;
+  let isEarly = false;
+  let newStatus: string;
 
-  // 是否提前结束
-  const isEarly = nowMins < schedEndMins;
-  const newStatus = isEarly ? 'early_completed' : 'completed';
+  // 如果结束时间在计划开始时间之前 → 未实际使用，工时=0
+  if (now.isBefore(schedStartDt)) {
+    newStatus = 'early_completed';
+    isEarly = true;
+    settlementEnd = actualEnd;  // 实际结束时间就是现在
+  } else {
+    // effectiveEnd = min(now, schedEndDt)，不超出计划结束时间
+    const effectiveEnd = now.isBefore(schedEndDt) ? now : schedEndDt;
+    isEarly = now.isBefore(schedEndDt);
+
+    // +30分钟返程路途，但不能超出计划结束时间
+    const rawSettlementEnd = effectiveEnd.add(30, 'minute');
+    const cappedSettlementEnd = rawSettlementEnd.isBefore(schedEndDt) ? rawSettlementEnd : schedEndDt;
+
+    const workMins = cappedSettlementEnd.diff(schedStartDt, 'minute');
+    workingHours = Math.round(Math.max(0, workMins) / 60 * 100) / 100;
+    totalCost = Math.round(workingHours * (Number(app.hourly_rate) || 0) * 100) / 100;
+
+    settlementEnd = cappedSettlementEnd.format('HH:mm');
+    newStatus = isEarly ? 'early_completed' : 'completed';
+  }
 
   getDB().prepare(`UPDATE machinery_applications
     SET status = ?,
@@ -124,7 +138,11 @@ router.post('/early-end/:id', auth, asyncHandler(async (req: Request, res: Respo
         updated_at = datetime('now')
     WHERE id = ?`).run(newStatus, actualEnd, settlementEnd, workingHours, totalCost, req.params.id);
 
-  const msg = isEarly ? '用车已提前结束' : '用车已结束（按申请时段结算）';
+  const msgs: Record<string, string> = {
+    early_completed: workingHours === 0 ? '用车已提前结束（未实际使用，不产生费用）' : '用车已提前结束',
+    completed: '用车已结束（按申请时段结算）',
+  };
+  const msg = msgs[newStatus] || '操作成功';
   res.json({ code: 200, msg, data: { working_hours: workingHours, total_cost: totalCost, is_early: isEarly } });
 }));
 
@@ -143,16 +161,15 @@ function autoCompleteOverdueApplications() {
     // 计划结束 + 30分钟返程 < 当前时间 → 自动结束
     if (schedEndDt.add(30, 'minute').isBefore(now)) {
       const scheduledStart = String(app.scheduled_start || '08:00');
-      const schedStartDt = dayjs(scheduledStart.length > 5 ? scheduledStart : `${now.format('YYYY-MM-DD')} ${scheduledStart}`);
-      const startMins = schedStartDt.hour() * 60 + schedStartDt.minute();
-      const endMins = schedEndDt.hour() * 60 + schedEndDt.minute();
-      const settlementEndMins = endMins + 30;
-      let workMins = settlementEndMins - startMins;
-      if (workMins < 0) workMins += 24 * 60;
-      workMins = Math.max(0, workMins);
-      const workingHours = Math.round(workMins / 60 * 100) / 100;
+      const todayForAuto = now.format('YYYY-MM-DD');
+      const schedStartDt = dayjs(scheduledStart.length > 5 ? scheduledStart : `${todayForAuto} ${scheduledStart}`);
+      // 计划时长(分钟) + 30分钟返程路途
+      const plannedMins = schedEndDt.diff(schedStartDt, 'minute');
+      const workMins = plannedMins + 30;
+      const workingHours = Math.round(Math.max(0, workMins) / 60 * 100) / 100;
       const totalCost = Math.round(workingHours * (Number(app.hourly_rate) || 0) * 100) / 100;
-      const settlementEnd = `${String(Math.floor(settlementEndMins / 60) % 24).padStart(2, '0')}:${String(settlementEndMins % 60).padStart(2, '0')}`;
+      const settlementEndDt = schedEndDt.add(30, 'minute');
+      const settlementEnd = settlementEndDt.format('HH:mm');
 
       getDB().prepare(`UPDATE machinery_applications
         SET status = 'completed',
@@ -160,6 +177,27 @@ function autoCompleteOverdueApplications() {
             working_hours = ?, total_cost = ?,
             updated_at = datetime('now')
         WHERE id = ?`).run(schedEndDt.format('HH:mm'), settlementEnd, workingHours, totalCost, app.id);
+
+      const appId = Number(app.id);
+      const vehicleInfo = `${app.vehicle_type || '未知车型'}`;
+
+      // 通知驾驶员（DB + JPush）
+      if (app.assigned_driver_id) {
+        sendToUser(app.assigned_driver_id as number, {
+          type: 'machinery_completed', title: '用车任务完成',
+          content: `${vehicleInfo} 用车任务已自动结束，用时${workingHours}小时，费用¥${totalCost}`,
+          orderId: appId,
+        });
+      }
+
+      // 通知申请人（DB + JPush）
+      if (app.applicant_id) {
+        sendToUser(app.applicant_id as number, {
+          type: 'machinery_completed', title: '用车申请已完成',
+          content: `您的${vehicleInfo}用车申请已自动结束，费用¥${totalCost}`,
+          orderId: appId,
+        });
+      }
     }
   }
 }
@@ -346,24 +384,20 @@ router.post('/revoke/:id', auth, requireRole('admin', 'dispatcher'), asyncHandle
         updated_at = datetime('now')
     WHERE id = ?`).run(req.params.id);
 
-  // 通知申请人
-  try {
-    getDB().prepare(`INSERT INTO notifications (user_id, type, title, content, order_id)
-      VALUES (?, 'machinery_revoked', '指派已撤销',
-      '您的用车申请指派已被撤销，订单回到待指派状态，请等待调度员重新分派。', ?)`).run(
-      app.applicant_id, req.params.id
-    );
-  } catch (_) { /* 通知非关键 */ }
+  // 通知申请人（DB + JPush）
+  sendToUser(app.applicant_id as number, {
+    type: 'machinery_revoked', title: '指派已撤销',
+    content: '您的用车申请指派已被撤销，订单回到待指派状态，请等待调度员重新分派。',
+    orderId: Number(req.params.id),
+  });
 
-  // 通知驾驶员
+  // 通知驾驶员（DB + JPush）
   if (app.assigned_driver_id) {
-    try {
-      getDB().prepare(`INSERT INTO notifications (user_id, type, title, content, order_id)
-        VALUES (?, 'machinery_revoked', '任务取消',
-        '您被指派的任务已被撤销，请关注新的派车通知。', ?)`).run(
-        app.assigned_driver_id, req.params.id
-      );
-    } catch (_) { /* 通知非关键 */ }
+    sendToUser(app.assigned_driver_id as number, {
+      type: 'machinery_revoked', title: '任务取消',
+      content: '您被指派的任务已被撤销，请关注新的派车通知。',
+      orderId: Number(req.params.id),
+    });
   }
 
   res.json({ code: 200, msg: '指派已撤销，订单回到待指派列表' });
@@ -587,27 +621,19 @@ router.post('/assign/:id', auth, validate(machineryAssignSchema), requireRole('a
         updated_at = datetime('now')
     WHERE id = ?`).run(assigned_vehicle_id, assigned_driver_id, req.user.id, hourlyRate, req.params.id);
 
-  // 通知驾驶员
-  try {
-    getDB().prepare(`INSERT INTO notifications (user_id, type, title, content, order_id)
-      VALUES (?, 'machinery_dispatch', '派车通知',
-      ?, ?)`).run(
-      assigned_driver_id,
-      `${vehicle.plate_number} 派往 ${app.applicant_dept} — ${app.work_location}`,
-      req.params.id
-    );
-  } catch (_) { /* 通知非关键 */ }
+  // 通知驾驶员（DB + JPush）
+  sendToUser(assigned_driver_id as number, {
+    type: 'machinery_dispatch', title: '派车通知',
+    content: `${vehicle.plate_number} 派往 ${app.applicant_dept} — ${app.work_location}`,
+    orderId: Number(req.params.id),
+  });
 
-  // 通知申请方
-  try {
-    getDB().prepare(`INSERT INTO notifications (user_id, type, title, content, order_id)
-      VALUES (?, 'machinery_assigned', '派车成功',
-      ?, ?)`).run(
-      app.applicant_id,
-      `驾驶员 ${driver.name}（${driver.phone}）已被派往您的作业`,
-      req.params.id
-    );
-  } catch (_) { /* 通知非关键 */ }
+  // 通知申请方（DB + JPush）
+  sendToUser(app.applicant_id as number, {
+    type: 'machinery_assigned', title: '派车成功',
+    content: `驾驶员 ${driver.name}（${driver.phone}）已被派往您的作业`,
+    orderId: Number(req.params.id),
+  });
 
   res.json({ code: 200, msg: '派车成功',
     data: {
@@ -863,7 +889,7 @@ router.post('/export-xlsx', auth, requireRole('admin', 'dispatcher'), asyncHandl
   const data = getDB().prepare(sql).all(...params) as Record<string,unknown>[];
 
   const columns: ColumnDef[] = [
-    { header:'申请日期',width:12,style:'date' },{ header:'申请部门',width:16 },{ header:'申请人',width:12 },
+    { header:'申请日期',width:12,style:'date' },{ header:'申请部门',width:16 },{ header:'费供',width:8 },{ header:'申请人',width:12 },
     { header:'车辆',width:20 },{ header:'驾驶员',width:12 },{ header:'作业地点',width:18 },
     { header:'作业时间',width:30 },{ header:'作业时长(h)',width:12 },{ header:'费用(元)',width:14,style:'currency' },
     { header:'状态',width:10 },
@@ -872,8 +898,11 @@ router.post('/export-xlsx', auth, requireRole('admin', 'dispatcher'), asyncHandl
     const vehicle = (r.assigned_plate||'')+' '+(r.assigned_vehicle_type||'')+' '+(r.assigned_vehicle_model||'');
     const workTime = (r.scheduled_start||'')+' ~ '+(r.scheduled_end||'');
     const workHours = r.working_hours ? Number(r.working_hours).toFixed(1) : '-';
+    const fp = r.fee_provider;
+    const feeLabel = fp === 'party_a' ? '甲方' : fp === 'party_b' ? '乙方' : '-';
     return {
       '申请日期': String(r.created_at||'').slice(0,10), '申请部门': r.applicant_dept||'总调度室',
+      '费供': feeLabel,
       '申请人': r.applicant_name||'-', '车辆': vehicle.trim(), '驾驶员': r.driver_name||'-',
       '作业地点': r.work_location||'-', '作业时间': workTime,
       '作业时长(h)': workHours, '费用(元)': Number(r.total_cost)||0,
@@ -881,6 +910,63 @@ router.post('/export-xlsx', auth, requireRole('admin', 'dispatcher'), asyncHandl
     };
   });
   await sendExcel(res, '派车收益明细.xlsx', '派车收益', columns, rows);
+}));
+
+// ==================== 申请分析（车型分布 + 趋势 + 车辆排名） ====================
+router.get('/application-analysis', auth, requireRole('admin', 'dispatcher'), asyncHandler(async (req: Request, res: Response) => {
+  const period = String(req.query.period || 'month');
+  let fmt: string;
+  if (period === 'year') fmt = '%Y';
+  else if (period === 'day') fmt = '%Y-%m-%d';
+  else fmt = '%Y-%m';
+
+  // 车型申请分布
+  const byType = getDB().prepare(
+    `SELECT vehicle_type, COUNT(*) as cnt
+     FROM machinery_applications WHERE vehicle_type != ''
+     GROUP BY vehicle_type ORDER BY cnt DESC`
+  ).all() as Record<string,unknown>[];
+  const totalCount = (byType as any[]).reduce((s: number, r: any) => s + Number(r.cnt), 0);
+  const byTypeResult = (byType as any[]).map((r: any) => ({
+    vehicle_type: r.vehicle_type,
+    count: Number(r.cnt),
+    percentage: totalCount > 0 ? Math.round(Number(r.cnt) / totalCount * 1000) / 10 : 0,
+  }));
+
+  // 趋势
+  const trendRows = getDB().prepare(
+    `SELECT strftime('${fmt}', created_at) as label, vehicle_type, COUNT(*) as cnt
+     FROM machinery_applications WHERE vehicle_type != ''
+     GROUP BY label, vehicle_type ORDER BY label`
+  ).all() as Record<string,unknown>[];
+  const trendMap = new Map<string, { count: number; types: Record<string, number> }>();
+  for (const r of (trendRows as any[])) {
+    const label = String(r.label);
+    if (!trendMap.has(label)) trendMap.set(label, { count: 0, types: {} });
+    const entry = trendMap.get(label)!;
+    entry.count += Number(r.cnt);
+    entry.types[String(r.vehicle_type)] = Number(r.cnt);
+  }
+  const trend = Array.from(trendMap.entries()).map(([label, v]) => ({
+    label, count: v.count, types: v.types,
+  }));
+
+  // 车辆被派次数排名（已指派/用车中/已完成/提前结束的工单）
+  const vehicleRank = getDB().prepare(
+    `SELECT v.plate_number, v.vehicle_type, COUNT(*) as cnt
+     FROM machinery_applications ma
+     JOIN vehicles v ON ma.assigned_vehicle_id = v.id
+     WHERE ma.assigned_vehicle_id IS NOT NULL
+     GROUP BY ma.assigned_vehicle_id
+     ORDER BY cnt DESC`
+  ).all() as Record<string,unknown>[];
+  const vehicleRanking = (vehicleRank as any[]).map((r: any) => ({
+    plate_number: r.plate_number,
+    vehicle_type: r.vehicle_type,
+    count: Number(r.cnt),
+  }));
+
+  res.json({ code: 200, data: { period, totalCount, byType: byTypeResult, trend, vehicleRanking } });
 }));
 
 export default router;

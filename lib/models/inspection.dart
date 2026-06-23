@@ -11,6 +11,10 @@ class InspectionRecord {
   final String? appearance;
   final String? tireCondition;
   final String? toolkitCheck;
+  final String? mentalState;
+  final String? ppeWearing;
+  final int? bloodPressureHigh;
+  final int? bloodPressureLow;
   final String? overallStatus;
   final String? abnormalDesc;
   final String? notes;
@@ -46,6 +50,10 @@ class InspectionRecord {
     this.appearance,
     this.tireCondition,
     this.toolkitCheck,
+    this.mentalState,
+    this.ppeWearing,
+    this.bloodPressureHigh,
+    this.bloodPressureLow,
     this.overallStatus,
     this.abnormalDesc,
     this.notes,
@@ -71,6 +79,12 @@ class InspectionRecord {
     }
     return 0;
   }
+
+  String get mentalStateLabel => mentalState == 'abnormal' ? '不正常' : '正常';
+  String get ppeWearingLabel => ppeWearing == 'missing' ? '缺失' : '齐全';
+  String get bloodPressureDisplay =>
+    (bloodPressureHigh != null && bloodPressureHigh! > 0)
+      ? '$bloodPressureHigh/$bloodPressureLow' : '-';
 
   factory InspectionRecord.fromJson(Map<String, dynamic> json) {
     List<String> parsePhotos(dynamic p) {
@@ -98,6 +112,10 @@ class InspectionRecord {
       appearance: json['appearance'] as String?,
       tireCondition: json['tire_condition'] as String?,
       toolkitCheck: json['toolkit_check'] as String?,
+      mentalState: json['mental_state'] as String?,
+      ppeWearing: json['ppe_wearing'] as String?,
+      bloodPressureHigh: json['blood_pressure_high'] as int?,
+      bloodPressureLow: json['blood_pressure_low'] as int?,
       overallStatus: json['overall_status'] as String?,
       abnormalDesc: json['abnormal_desc'] as String?,
       notes: json['notes'] as String?,

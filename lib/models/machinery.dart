@@ -17,6 +17,7 @@ class MachineryApplication {
   final String urgency; // normal / urgent / emergency
   final String? briefingMethod;
   final String? briefingFiles;
+  final String? feeProvider;
   final String status; // pending / assigned / in_progress / completed / early_completed / cancelled
   final int? assignedVehicleId;
   final int? assignedDriverId;
@@ -57,6 +58,7 @@ class MachineryApplication {
     this.urgency = 'normal',
     this.briefingMethod,
     this.briefingFiles,
+    this.feeProvider,
     this.status = 'pending',
     this.assignedVehicleId,
     this.assignedDriverId,
@@ -118,6 +120,12 @@ class MachineryApplication {
     return map[applicationType] ?? applicationType;
   }
 
+  String get feeProviderLabel {
+    if (feeProvider == 'party_a') return '甲方';
+    if (feeProvider == 'party_b') return '乙方';
+    return '-';
+  }
+
   bool get isPending => status == 'pending';
   bool get isActive => status == 'assigned' || status == 'in_progress';
   bool get isCompleted => status == 'completed' || status == 'early_completed';
@@ -155,6 +163,7 @@ class MachineryApplication {
       urgency: json['urgency']?.toString() ?? 'normal',
       briefingMethod: json['briefing_method']?.toString(),
       briefingFiles: json['briefing_files']?.toString(),
+      feeProvider: json['fee_provider']?.toString(),
       status: json['status']?.toString() ?? 'pending',
       assignedVehicleId: json['assigned_vehicle_id'] as int?,
       assignedDriverId: json['assigned_driver_id'] as int?,

@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/hazard.dart';
 import '../services/hazard_service.dart';
+import 'ticker.dart';
 
-/// 隐患列表（支持状态筛选）
+/// 隐患列表（支持状态筛选，30秒自动刷新）
 final hazardListProvider =
     FutureProvider.family<List<Hazard>, String?>((ref, status) async {
+  ref.watch(listTickerProvider);
   final service = HazardService();
   return service.getHazardList(status: status);
 });
 
-/// 我的隐患（整改人视角）
+/// 我的隐患（整改人视角，30秒自动刷新）
 final myHazardsProvider = FutureProvider<List<Hazard>>((ref) async {
+  ref.watch(listTickerProvider);
   final service = HazardService();
   return service.getHazardList(my: true);
 });

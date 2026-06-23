@@ -58,9 +58,8 @@ class _MyOrdersPageState extends ConsumerState<MyOrdersPage> {
     final filters = [
       {'label': '全部', 'value': null},
       {'label': '待接单', 'value': 'pending_accept'},
-      {'label': '待审批', 'value': 'pending_approval'},
-      {'label': '维修中', 'value': 'repairing'},
-      {'label': '待验收', 'value': 'completed'},
+      {'label': '待审批', 'value': 'pending_quote,pending_approval'},
+      {'label': '维修中', 'value': 'approved,repairing,completed'},
       {'label': '已完成', 'value': 'accepted'},
     ];
 

@@ -1,15 +1,18 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
 import 'dart:convert';
-import 'dart:html' as html;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'file_saver.dart';
 import '../config/api_config.dart';
 
+// Conditional imports: web gets the real dart:html impl, others get stub
+import 'download_helper_stub.dart'
+    if (dart.library.html) 'download_helper_web.dart'
+    if (dart.library.io) 'download_helper_io.dart';
+
 /// 跨平台 XLSX 下载服务
 /// - Web: 浏览器原生 HttpRequest（无 CORS 问题，已验证可用）
-/// - 移动端: Dio + path_provider
+/// - 移动端/桌面: Dio + path_provider
 class DownloadService {
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -24,44 +27,27 @@ class DownloadService {
   }
 
   /// 下载 XLSX 文件，返回保存路径（Web 返回 null，触发浏览器下载）
+  /// [shareAfterSave] — 保存后自动弹出系统分享面板（默认 true）
   Future<String?> downloadXlsx(
     String path,
     Map<String, dynamic> body,
-    String filename,
-  ) async {
+    String filename, {
+    bool shareAfterSave = true,
+  }) async {
     if (kIsWeb) {
       return _downloadWeb(path, body, filename);
     }
-    return _downloadMobile(path, body, filename);
+    return _downloadMobile(path, body, filename, shareAfterSave: shareAfterSave);
   }
 
-  /// Web 端：浏览器原生 HttpRequest → blob → 触发下载
+  /// Web 端：通过条件导入的 downloadFileWeb 函数（实际来自 download_helper_web.dart）
   Future<String?> _downloadWeb(String path, Map<String, dynamic> body, String filename) async {
     final token = await _storage.read(key: 'jwt_token');
-    final resp = await html.HttpRequest.request(
-      '${ApiConfig.apiBase}$path',
-      method: 'POST',
-      requestHeaders: {
-        'Authorization': 'Bearer ${token ?? ''}',
-        'Content-Type': 'application/json',
-      },
-      sendData: jsonEncode(body),
-      responseType: 'blob',
-    );
-    final blob = resp.response as html.Blob?;
-    if (blob == null) throw Exception('导出失败：服务器无数据返回');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute('download', filename)
-      ..click();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      html.Url.revokeObjectUrl(url);
-    });
-    return null;
+    return downloadFileWeb(ApiConfig.apiBase, path, body, filename, token);
   }
 
-  /// 移动端：Dio bytes → path_provider 保存
-  Future<String?> _downloadMobile(String path, Map<String, dynamic> body, String filename) async {
+  /// 移动端/桌面端：Dio bytes → 保存到 Downloads → 弹出分享面板
+  Future<String?> _downloadMobile(String path, Map<String, dynamic> body, String filename, {bool shareAfterSave = true}) async {
     final response = await _dio.post(
       '${ApiConfig.apiBase}$path',
       data: jsonEncode(body),
@@ -74,6 +60,11 @@ class DownloadService {
     if (bytes is! List<int> || bytes.isEmpty) {
       throw Exception('导出失败：服务器无数据返回');
     }
-    return FileSaver.instance.saveBytes(bytes, filename);
+    final filePath = await FileSaver.instance.saveBytes(bytes, filename);
+    if (filePath != null && shareAfterSave) {
+      // 异步分享，不阻塞返回
+      FileSaver.instance.shareFile(filePath, subject: filename);
+    }
+    return filePath;
   }
 }

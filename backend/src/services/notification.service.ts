@@ -1,10 +1,11 @@
 import { getDB } from '../db';
+import { pushToUser, pushToTag, pushToUsers } from './jpush.service';
 
 /**
  * 统一通知服务
- * - sendToRole: 按角色发送给该角色的所有活跃用户
- * - sendToUser: 发送给指定用户
- * - sendToRepairShop: 发送给指定修理厂的所有用户
+ * - sendToRole: 按角色发送给该角色的所有活跃用户 + JPush 标签推送
+ * - sendToUser: 发送给指定用户 + JPush 别名推送
+ * - sendToRepairShop: 发送给指定修理厂的所有用户 + JPush 推送
  */
 
 export interface NotificationData {
@@ -14,18 +15,41 @@ export interface NotificationData {
   orderId?: number;
 }
 
+function _getUserPhones(userIds: number[]): string[] {
+  if (userIds.length === 0) return [];
+  const placeholders = userIds.map(() => '?').join(',');
+  const rows = getDB().prepare(
+    `SELECT phone FROM users WHERE id IN (${placeholders}) AND phone IS NOT NULL AND phone != ''`
+  ).all(...userIds) as Array<{ phone: string }>;
+  return rows.map(r => r.phone);
+}
+
+/** 构建 JPush extras（通知点击跳转用） */
+function _extras(data: NotificationData): Record<string, string> {
+  const e: Record<string, string> = { type: data.type };
+  if (data.orderId != null) e.order_id = String(data.orderId);
+  return e;
+}
+
 export function sendToRole(role: string, data: NotificationData): void {
   try {
     const users = getDB().prepare(
-      'SELECT id FROM users WHERE role = ? AND status = 1'
-    ).all(role) as Array<{ id: number }>;
+      'SELECT id, phone FROM users WHERE role = ? AND status = 1'
+    ).all(role) as Array<{ id: number; phone: string }>;
     const stmt = getDB().prepare(
       'INSERT INTO notifications (user_id, type, title, content, order_id) VALUES (?, ?, ?, ?, ?)'
     );
+    const phones: string[] = [];
     for (const u of users) {
       try {
         stmt.run(u.id, data.type, data.title, data.content, data.orderId ?? null);
+        if (u.phone) phones.push(u.phone);
       } catch { /* skip */ }
+    }
+    // JPush: 标签推送 + 别名推送双保险（带 extras 支持点击跳转）
+    pushToTag(`role_${role}`, data.title, data.content, _extras(data));
+    if (phones.length > 0) {
+      pushToUsers(phones, data.title, data.content, _extras(data));
     }
   } catch { /* 通知非关键 */ }
 }
@@ -35,6 +59,11 @@ export function sendToUser(userId: number, data: NotificationData): void {
     getDB().prepare(
       'INSERT INTO notifications (user_id, type, title, content, order_id) VALUES (?, ?, ?, ?, ?)'
     ).run(userId, data.type, data.title, data.content, data.orderId ?? null);
+    // JPush: 按用户手机号别名推送（带 extras 支持点击跳转）
+    const user = getDB().prepare('SELECT phone FROM users WHERE id = ?').get(userId) as { phone: string } | undefined;
+    if (user?.phone) {
+      pushToUser(user.phone, data.title, data.content, _extras(data));
+    }
   } catch { /* 通知非关键 */ }
 }
 
@@ -50,6 +79,11 @@ export function sendToRepairShop(repairShopId: number, data: NotificationData): 
       try {
         stmt.run(u.id, data.type, data.title, data.content, data.orderId ?? null);
       } catch { /* skip */ }
+    }
+    // JPush: 推送给修理厂的所有用户（带 extras 支持点击跳转）
+    const phones = _getUserPhones(users.map(u => u.id));
+    if (phones.length > 0) {
+      pushToUsers(phones, data.title, data.content, _extras(data));
     }
   } catch { /* 通知非关键 */ }
 }

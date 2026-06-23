@@ -228,6 +228,7 @@ class _DispatchExportPageState extends ConsumerState<DispatchExportPage> {
         columns: const [
           DataColumn(label: Text('申请日期', style: _thStyle)),
           DataColumn(label: Text('申请部门', style: _thStyle)),
+          DataColumn(label: Text('费供', style: _thStyle)),
           DataColumn(label: Text('申请人', style: _thStyle)),
           DataColumn(label: Text('类型', style: _thStyle)),
           DataColumn(label: Text('内部编号', style: _thStyle)),
@@ -241,6 +242,7 @@ class _DispatchExportPageState extends ConsumerState<DispatchExportPage> {
         rows: list.map((a) => DataRow(cells: [
           _cell(a.scheduledStart.length >= 10 ? a.scheduledStart.substring(0, 10) : a.scheduledStart),
           _cell(a.applicantDept),
+          _cell(a.feeProviderLabel),
           _cell(a.applicantName),
           _cell(a.vehicleType),
           _cell(a.assignedPlate ?? '-'),

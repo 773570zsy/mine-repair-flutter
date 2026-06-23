@@ -24,7 +24,13 @@ class ExternalRepairDashboard extends ConsumerWidget {
         final pendingApproval = orders.where((o) => o.status == 'pending_approval').length;
         final pendingAcceptance = orders.where((o) => o.status == 'completed').length;
 
-        return SingleChildScrollView(
+        return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async {
+        ref.invalidate(externalMyRequestsProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // 统计卡片
@@ -61,7 +67,7 @@ class ExternalRepairDashboard extends ConsumerWidget {
               ...orders.take(5).map((o) => _orderRow(context, o)),
             ],
           ]),
-        );
+        ));
       },
     );
   }

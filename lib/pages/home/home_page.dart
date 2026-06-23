@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/color_constants.dart';
@@ -15,7 +16,22 @@ import 'safety_dashboard.dart';
 import 'external_repair_dashboard.dart';
 import '../../widgets/bulletin_board.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/repair_provider.dart';
+import '../../providers/admin_provider.dart';
+import '../../providers/hazard_provider.dart';
+import '../../providers/safety_provider.dart';
+import '../../providers/inspection_provider.dart';
+import '../../providers/machinery_provider.dart';
+import '../../providers/external_repair_provider.dart';
+import '../../widgets/update_dialog.dart';
+import '../../widgets/silent_auto_refresh.dart';
 import 'widgets/local_weather_card.dart';
+
+/// 全局刷新计数器（F5 或按钮触发）
+final homeRefreshProvider = StateProvider<int>((ref) => 0);
+
+/// 首页版本检查只触发一次
+bool _homeUpdateChecked = false;
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -26,6 +42,14 @@ class HomePage extends ConsumerWidget {
     final user = authState.user;
     // 监听未读通知数（30秒轮询）
     final unreadAsync = ref.watch(unreadCountProvider);
+
+    // 首页加载后检查版本更新（仅一次，防重复）
+    if (user != null && !_homeUpdateChecked) {
+      _homeUpdateChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        UpdateDialog.checkAndShow(context);
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -40,10 +64,8 @@ class HomePage extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(right: 4),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.waving_hand, size: 14, color: AppColors.gold),
-                const SizedBox(width: 4),
                 Text.rich(TextSpan(children: [
-                  const TextSpan(text: '欢迎您 ', style: TextStyle(fontSize: 12, color: AppColors.text2)),
+                  const TextSpan(text: '欢迎 ', style: TextStyle(fontSize: 12, color: AppColors.text2)),
                   TextSpan(text: '${roleLabel(user.role)}：', style: const TextStyle(fontSize: 12, color: AppColors.gold, fontWeight: FontWeight.w600)),
                   TextSpan(text: user.name, style: const TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w600)),
                 ])),
@@ -59,6 +81,7 @@ class HomePage extends ConsumerWidget {
                   // 进入时刷新一次未读计数
                   ref.read(unreadCountProvider.notifier).refresh();
                 },
+                padding: const EdgeInsets.all(8),
               ),
               unreadAsync.whenOrNull(
                     data: (count) => count > 0
@@ -84,23 +107,61 @@ class HomePage extends ConsumerWidget {
                   const SizedBox.shrink(),
             ],
           ),
-          IconButton(icon: const Icon(Icons.person_outline, size: 20), onPressed: () => context.push('/profile')),
+          IconButton(
+            icon: const Icon(Icons.person_outline, size: 20),
+            onPressed: () => context.push('/profile'),
+            padding: const EdgeInsets.all(8),
+          ),
         ],
       ),
       drawer: user == null ? null : _buildDrawer(context, ref, user),
-      body: user == null
+      body: CallbackShortcuts(
+        bindings: {
+          LogicalKeySet(LogicalKeyboardKey.f5): () {
+            _doRefresh(ref, user);
+          },
+        },
+        child: user == null
           ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
-          : Column(
-              children: [
-                const LocalWeatherCard(),
-                Expanded(child: _buildDashboard(context, user)),
-              ],
+          : SilentAutoRefresh(
+              intervalSeconds: 20,
+              onRefresh: (r) {
+                r.invalidate(adminDashboardProvider);
+                r.invalidate(shopOrdersProvider);
+                r.invalidate(pendingAcceptProvider);
+                r.invalidate(hazardListProvider);
+                r.invalidate(assessmentListProvider);
+                r.invalidate(myVehiclesProvider);
+                r.invalidate(myOrdersProvider);
+                r.invalidate(myRecordsProvider);
+                r.invalidate(machineryPendingListProvider);
+                r.invalidate(machineryAllApplicationsProvider);
+                r.invalidate(machineryCostStatsProvider);
+                r.invalidate(activeMachineryApplicationsProvider);
+                r.invalidate(externalMyRequestsProvider);
+              },
+              child: Column(
+                children: [
+                  const LocalWeatherCard(),
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: AppColors.gold,
+                      backgroundColor: AppColors.surface,
+                      onRefresh: () async {
+                        _doRefresh(ref, user);
+                      },
+                      child: _buildDashboard(context, user, refreshKey: ref.watch(homeRefreshProvider)),
+                    ),
+                  ),
+                ],
+              ),
             ),
+      ),
       floatingActionButton: (user != null && user.role != 'applicant')
           ? FloatingActionButton(
               onPressed: () => showDialog(context: context, builder: (_) => const BulletinBoard()),
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.gold,
               mini: true,
               child: const Text('⚠', style: TextStyle(fontSize: 18)),
             )
@@ -281,16 +342,34 @@ class HomePage extends ConsumerWidget {
 
   // ==================== Dashboard ====================
 
-  Widget _buildDashboard(BuildContext context, User user) {
+  /// F5 / 刷新按钮 — 清除所有仪表盘缓存，强制重新拉取数据
+  void _doRefresh(WidgetRef ref, User? user) {
+    ref.read(homeRefreshProvider.notifier).state++;
+    ref.invalidate(adminDashboardProvider);
+    ref.invalidate(shopOrdersProvider);
+    ref.invalidate(pendingAcceptProvider);
+    ref.invalidate(hazardListProvider);
+    ref.invalidate(assessmentListProvider);
+    ref.invalidate(myVehiclesProvider);
+    ref.invalidate(myOrdersProvider);
+    ref.invalidate(myRecordsProvider);
+    ref.invalidate(machineryPendingListProvider);
+    ref.invalidate(machineryAllApplicationsProvider);
+    ref.invalidate(machineryCostStatsProvider);
+    ref.invalidate(activeMachineryApplicationsProvider);
+    ref.invalidate(externalMyRequestsProvider);
+  }
+
+  Widget _buildDashboard(BuildContext context, User user, {required int refreshKey}) {
     switch (user.role) {
-      case 'driver': return DriverDashboard(pageContext: context);
-      case 'repair_shop': return ShopDashboard(pageContext: context);
-      case 'leader': return LeaderDashboard(pageContext: context);
-      case 'admin': return AdminDashboard(pageContext: context);
-      case 'safety_officer': return SafetyOfficerDashboard(pageContext: context);
-      case 'applicant': return ApplicantDashboard(pageContext: context);
-      case 'dispatcher': return DispatcherDashboard(pageContext: context);
-      case 'external_repair': return ExternalRepairDashboard(pageContext: context);
+      case 'driver': return KeyedSubtree(key: ValueKey('driver_$refreshKey'), child: DriverDashboard(pageContext: context));
+      case 'repair_shop': return KeyedSubtree(key: ValueKey('shop_$refreshKey'), child: ShopDashboard(pageContext: context));
+      case 'leader': return KeyedSubtree(key: ValueKey('leader_$refreshKey'), child: LeaderDashboard(pageContext: context));
+      case 'admin': return KeyedSubtree(key: ValueKey('admin_$refreshKey'), child: AdminDashboard(pageContext: context));
+      case 'safety_officer': return KeyedSubtree(key: ValueKey('safety_$refreshKey'), child: SafetyOfficerDashboard(pageContext: context));
+      case 'applicant': return KeyedSubtree(key: ValueKey('applicant_$refreshKey'), child: ApplicantDashboard(pageContext: context));
+      case 'dispatcher': return KeyedSubtree(key: ValueKey('dispatcher_$refreshKey'), child: DispatcherDashboard(pageContext: context));
+      case 'external_repair': return KeyedSubtree(key: ValueKey('ext_$refreshKey'), child: ExternalRepairDashboard(pageContext: context));
       default: return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.rocket_launch, size: 48, color: AppColors.text2),
         SizedBox(height: 12),

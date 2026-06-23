@@ -1,8 +1,18 @@
+import 'package:flutter/foundation.dart' show TargetPlatform, kIsWeb, defaultTargetPlatform;
 import '../models/user.dart';
 import 'http_client.dart';
 
 class AuthService {
   final HttpClient _client = HttpClient();
+
+  /// 获取设备类型（Web 安全：不依赖 dart:io）
+  String get _deviceType {
+    if (kIsWeb) return 'pc';
+    return (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)
+        ? 'mobile'
+        : 'pc';
+  }
 
   /// 登录
   /// 返回 {token, user, bindings, department}
@@ -10,6 +20,7 @@ class AuthService {
     final resp = await _client.post('/auth/login', data: {
       'phone': phone,
       'password': password,
+      'device_type': _deviceType,
     });
 
     if (!resp.isSuccess || resp.data == null) {

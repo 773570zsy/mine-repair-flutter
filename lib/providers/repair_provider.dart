@@ -3,6 +3,7 @@ import '../models/vehicle.dart';
 import '../models/repair_order.dart';
 import '../services/vehicle_service.dart';
 import '../services/repair_service.dart';
+import 'ticker.dart';
 
 // ==================== 车辆 ====================
 
@@ -13,28 +14,32 @@ final vehicleListProvider = FutureProvider<List<Vehicle>>((ref) async {
 
 // ==================== 工单列表 Providers ====================
 
-/// 驾驶员-我的工单
+/// 驾驶员-我的工单（30秒自动刷新）
 final myOrdersProvider =
     FutureProvider.family<List<RepairOrder>, String?>((ref, status) async {
+  ref.watch(listTickerProvider);
   final service = RepairService();
   return service.getMyOrders(status: status);
 });
 
-/// 修理厂-待接单
+/// 修理厂-待接单（30秒自动刷新）
 final pendingAcceptProvider = FutureProvider<List<RepairOrder>>((ref) async {
+  ref.watch(listTickerProvider);
   final service = RepairService();
   return service.getPendingAccept();
 });
 
-/// 修理厂-我的工单
+/// 修理厂-我的工单（30秒自动刷新）
 final shopOrdersProvider =
     FutureProvider.family<List<RepairOrder>, String?>((ref, status) async {
+  ref.watch(listTickerProvider);
   final service = RepairService();
   return service.getShopOrders(status: status);
 });
 
-/// 领导/管理员-待审批
+/// 领导/管理员-待审批（30秒自动刷新）
 final pendingApprovalProvider = FutureProvider<List<RepairOrder>>((ref) async {
+  ref.watch(listTickerProvider);
   final service = RepairService();
   return service.getPendingApproval();
 });

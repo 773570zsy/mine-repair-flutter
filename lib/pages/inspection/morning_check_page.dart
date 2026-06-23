@@ -24,10 +24,14 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
   String _appearance = 'normal';
   String _tireCondition = 'normal';
   String _toolkitCheck = 'normal';
+  String _mentalState = 'normal';
+  String _ppeWearing = 'ok';
   String _overallStatus = 'normal';
   final _abnormalDescCtrl = TextEditingController();
   final _startHoursCtrl = TextEditingController();
   final _startKmCtrl = TextEditingController();
+  final _bpHighCtrl = TextEditingController();
+  final _bpLowCtrl = TextEditingController();
   final List<String> _photos = [];
   final _picker = ImagePicker();
   bool _submitting = false;
@@ -37,6 +41,8 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
     _abnormalDescCtrl.dispose();
     _startHoursCtrl.dispose();
     _startKmCtrl.dispose();
+    _bpHighCtrl.dispose();
+    _bpLowCtrl.dispose();
     super.dispose();
   }
 
@@ -82,6 +88,10 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
         startHours: double.tryParse(_startHoursCtrl.text) ?? 0,
         startKm: double.tryParse(_startKmCtrl.text) ?? 0,
         photos: _photos,
+        mentalState: _mentalState,
+        ppeWearing: _ppeWearing,
+        bloodPressureHigh: int.tryParse(_bpHighCtrl.text) ?? 0,
+        bloodPressureLow: int.tryParse(_bpLowCtrl.text) ?? 0,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('早检提交成功')));
@@ -114,7 +124,52 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
             _buildSelectRow('外观情况', _appearance, ['normal', 'damaged', 'dirty'], (v) => setState(() => _appearance = v)),
             _buildSelectRow('轮胎状况', _tireCondition, ['normal', 'worn', 'damaged'], (v) => setState(() => _tireCondition = v)),
             _buildSelectRow('随车九样物品', _toolkitCheck, ['ok', 'missing'], (v) => setState(() => _toolkitCheck = v)),
+            _buildSelectRow('个人精神状态', _mentalState, ['normal', 'abnormal'], (v) => setState(() => _mentalState = v), labels: {'abnormal': '不正常'}),
+            _buildSelectRow('劳保用品穿戴', _ppeWearing, ['ok', 'missing'], (v) => setState(() => _ppeWearing = v)),
             _buildSelectRow('总体状态', _overallStatus, ['normal', 'abnormal'], (v) => setState(() => _overallStatus = v)),
+            const SizedBox(height: 12),
+            // 血压
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('血压填写', style: TextStyle(color: AppColors.text2, fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: TextField(
+                    controller: _bpHighCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppColors.text, fontSize: 13),
+                    decoration: InputDecoration(
+                      labelText: '高压',
+                      hintText: '收缩压',
+                      labelStyle: const TextStyle(color: AppColors.text2, fontSize: 13),
+                      hintStyle: const TextStyle(color: AppColors.text2, fontSize: 11),
+                      filled: true, fillColor: AppColors.bg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.gold)),
+                    ),
+                  )),
+                  const SizedBox(width: 10),
+                  Expanded(child: TextField(
+                    controller: _bpLowCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: AppColors.text, fontSize: 13),
+                    decoration: InputDecoration(
+                      labelText: '低压',
+                      hintText: '舒张压',
+                      labelStyle: const TextStyle(color: AppColors.text2, fontSize: 13),
+                      hintStyle: const TextStyle(color: AppColors.text2, fontSize: 11),
+                      filled: true, fillColor: AppColors.bg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.border)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: AppColors.gold)),
+                    ),
+                  )),
+                ]),
+              ]),
+            ),
             const SizedBox(height: 12),
             _buildTextField('上班工时', _startHoursCtrl, keyboardType: TextInputType.number),
             _buildTextField('上班公里数', _startKmCtrl, keyboardType: TextInputType.number),
@@ -166,7 +221,7 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
     );
   }
 
-  Widget _buildSelectRow(String label, String value, List<String> options, ValueChanged<String> onChanged) {
+  Widget _buildSelectRow(String label, String value, List<String> options, ValueChanged<String> onChanged, {Map<String, String>? labels}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(children: [
@@ -182,7 +237,7 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: value == o ? AppColors.gold : AppColors.border),
               ),
-              child: Text(_optionLabel(o), style: TextStyle(color: value == o ? AppColors.gold : AppColors.text2, fontSize: 12)),
+              child: Text(_optionLabel(o, labels: labels), style: TextStyle(color: value == o ? AppColors.gold : AppColors.text2, fontSize: 12)),
             ),
           ),
         )),
@@ -215,7 +270,7 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('现场照片', style: TextStyle(color: AppColors.text2, fontSize: 13)),
+        const Text('血压/点检照片上传', style: TextStyle(color: AppColors.text2, fontSize: 13)),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
           ..._photos.map((path) => Stack(
@@ -259,7 +314,8 @@ class _MorningCheckPageState extends ConsumerState<MorningCheckPage> {
     );
   }
 
-  String _optionLabel(String v) {
+  String _optionLabel(String v, {Map<String, String>? labels}) {
+    if (labels != null && labels.containsKey(v)) return labels[v]!;
     const map = {
       'high': '高位', 'mid': '中位', 'low': '低位',
       'normal': '正常', 'damaged': '有损坏', 'dirty': '需清洁',

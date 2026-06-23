@@ -56,16 +56,20 @@ class _PhotoViewerState extends State<PhotoViewer> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(path != null ? '已保存到: $path' : '已打开图片'),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 2),
+            content: Text(path != null ? '已保存到: $path' : '保存失败：未能获取文件'),
+            backgroundColor: path != null ? AppColors.success : AppColors.danger,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e'), backgroundColor: AppColors.danger),
+          SnackBar(
+            content: Text('保存失败: ${e.toString().replaceFirst("Exception: ", "")}'),
+            backgroundColor: AppColors.danger,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }
@@ -123,6 +127,31 @@ class _PhotoViewerState extends State<PhotoViewer> {
                 ),
               );
             },
+          ),
+
+          // ---- 点击空白关闭 / 点击两侧翻页 ----
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTapUp: (details) {
+                  // 不拦截顶部工具栏区域的点击
+                  final toolbarBottom = MediaQuery.of(context).padding.top + 50;
+                  if (details.localPosition.dy < toolbarBottom) return;
+
+                  final w = size.width;
+                  final x = details.localPosition.dx;
+                  if (multi && x < w * 0.2) {
+                    _goPrev();
+                  } else if (multi && x > w * 0.8) {
+                    _goNext();
+                  } else {
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+            ),
           ),
 
           // ---- 顶部工具栏 ----
@@ -211,27 +240,6 @@ class _PhotoViewerState extends State<PhotoViewer> {
                 ),
               ),
             ),
-
-          // ---- 点击空白关闭 / 点击两侧翻页 ----
-          Positioned.fill(
-            child: Material(
-              color: Colors.transparent,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTapUp: (details) {
-                  final w = size.width;
-                  final x = details.localPosition.dx;
-                  if (multi && x < w * 0.2) {
-                    _goPrev();
-                  } else if (multi && x > w * 0.8) {
-                    _goNext();
-                  } else {
-                    Navigator.pop(context);
-                  }
-                },
-              ),
-            ),
-          ),
         ],
       ),
     );

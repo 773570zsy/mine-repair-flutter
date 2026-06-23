@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
+import 'http_adapter_stub.dart' if (dart.library.io) 'http_adapter_io.dart';
 
 /// API 响应模型
 class ApiResponse<T> {
@@ -31,6 +32,13 @@ class HttpClient {
       headers: {'Content-Type': 'application/json'},
     ));
 
+    // 跳过 SSL 严格校验
+    final adapter = createAdapter();
+    if (adapter != null) {
+      dio.httpClientAdapter = adapter;
+      print('[HttpClient] SSL 宽松模式已启用');
+    }
+
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         // 自动附加 JWT Token
@@ -43,7 +51,7 @@ class HttpClient {
         if (error.response?.statusCode == 401) {
           onUnauthorized?.call();
         }
-        // 从后端 JSON 提取中文错误信息，替换英文 DioException
+        // 从后端 JSON 提取中文错误信息
         final data = error.response?.data;
         if (data is Map) {
           final msg = data['msg'] as String?;
@@ -58,7 +66,33 @@ class HttpClient {
             return;
           }
         }
-        handler.next(error);
+        // 网络层错误 → 中文
+        String cnMsg;
+        switch (error.type) {
+          case DioExceptionType.connectionTimeout:
+            cnMsg = '连接超时，请检查网络'; break;
+          case DioExceptionType.receiveTimeout:
+            cnMsg = '服务器响应超时，请重试'; break;
+          case DioExceptionType.sendTimeout:
+            cnMsg = '发送超时，请检查网络'; break;
+          case DioExceptionType.connectionError:
+            cnMsg = '无法连接服务器，请检查网络或服务器状态'; break;
+          case DioExceptionType.badCertificate:
+            cnMsg = 'SSL证书验证失败'; break;
+          case DioExceptionType.cancel:
+            cnMsg = '请求已取消'; break;
+          case DioExceptionType.badResponse:
+            cnMsg = '服务器响应异常(${error.response?.statusCode ?? "?"})'; break;
+          default:
+            cnMsg = error.message ?? '网络错误';
+        }
+        handler.next(DioException(
+          requestOptions: error.requestOptions,
+          response: error.response,
+          type: error.type,
+          error: cnMsg,
+          message: cnMsg,
+        ));
       },
     ));
   }

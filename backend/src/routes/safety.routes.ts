@@ -5,6 +5,7 @@ import { getDB } from '../db';
 import dayjs from 'dayjs';
 import { validate } from '../middleware/validate';
 import { assessmentSchema } from '../schemas/safety.schemas';
+import { sendToUser, sendToRole } from '../services/notification.service';
 
 function sanitize(input: string | null | undefined): string { if (input == null) return ''; return String(input).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;'); }
 
@@ -26,15 +27,20 @@ router.post('/assessment', auth, requireRole('safety_officer', 'admin'), validat
     getDB().prepare(
       'INSERT INTO assessments (assess_no, issuer_id, target_id, title, content, assess_type, photos, assess_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     ).run(no, req.user.id, target_id, sanitize(title), sanitize(content || ''), assess_type || '通报', JSON.stringify(photos || []), dateStr);
-    // 通知被考核人
-    getDB().prepare('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)').run(
-      target_id, 'assessment_new', '考核通报：' + sanitize(title), `你收到一条${assess_type || '通报'}：${sanitize(title)}。编号${no}`);
-    // 通知所有管理员
-    const admins = getDB().prepare("SELECT id FROM users WHERE role IN ('admin','leader','safety_officer') AND id != ? AND (status = 1 OR status = 0 OR status IS NULL OR status = '')").all(req.user.id) as { id: number }[];
-    for (const a of admins) {
-      getDB().prepare('INSERT INTO notifications (user_id, type, title, content) VALUES (?, ?, ?, ?)').run(
-        a.id, 'assessment_new', '考核通报：' + sanitize(title), `${req.user.name || '安全员'}对${sanitize(title)}下发了${assess_type || '通报'}。编号${no}`);
-    }
+    // 通知被考核人（DB + JPush）
+    sendToUser(target_id, {
+      type: 'assessment_issued', title: '考核通报：' + sanitize(title),
+      content: `你收到一条${assess_type || '通报'}：${sanitize(title)}。编号${no}`,
+    });
+    // 通知所有管理员和领导（DB + JPush）
+    sendToRole('admin', {
+      type: 'assessment_issued', title: '考核通报：' + sanitize(title),
+      content: `${req.user.name || '安全员'}对${sanitize(title)}下发了${assess_type || '通报'}。编号${no}`,
+    });
+    sendToRole('leader', {
+      type: 'assessment_issued', title: '考核通报：' + sanitize(title),
+      content: `${req.user.name || '安全员'}对${sanitize(title)}下发了${assess_type || '通报'}。编号${no}`,
+    });
     res.json({ code: 200, msg: '通报已下发', data: { assess_no: no } });
   } catch (err: any) {
     console.error('[Safety] Assessment error:', err?.message || err);

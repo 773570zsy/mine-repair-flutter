@@ -1,5 +1,6 @@
 import '../models/machinery.dart';
 import '../models/vehicle.dart';
+import '../models/application_analysis.dart';
 import 'http_client.dart';
 
 class MachineryService {
@@ -23,6 +24,7 @@ class MachineryService {
     String? urgency,
     String? briefingMethod,
     List<String>? briefingFiles,
+    String? feeProvider,
   }) async {
     final resp = await _client.post('/machinery/apply', data: {
       'applicant_dept': applicantDept,
@@ -38,7 +40,8 @@ class MachineryService {
       'is_hazardous': isHazardous,
       'urgency': urgency ?? 'normal',
       'briefing_method': briefingMethod ?? '',
-      'briefing_files': briefingFiles ?? [],
+      'briefing_files': (briefingFiles != null && briefingFiles.isNotEmpty) ? briefingFiles.join(',') : '',
+      'fee_provider': feeProvider ?? '',
     });
     if (!resp.isSuccess) throw Exception(resp.msg ?? '提交失败');
     return resp.msg ?? '申请已提交';
@@ -204,5 +207,19 @@ class MachineryService {
     final resp = await _client.get('/machinery/generate-daily-report');
     if (!resp.isSuccess) throw Exception(resp.msg ?? '生成失败');
     return resp.data as Map<String, dynamic>? ?? {};
+  }
+
+  /// 申请分析（车型分布 + 趋势 + 车辆排名）
+  Future<ApplicationAnalysis> getApplicationAnalysis({
+    String period = 'month',
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final params = <String, dynamic>{'period': period};
+    if (dateFrom != null) params['date_from'] = dateFrom;
+    if (dateTo != null) params['date_to'] = dateTo;
+    final resp = await _client.get('/machinery/application-analysis', queryParams: params);
+    if (!resp.isSuccess) throw Exception(resp.msg ?? '获取分析数据失败');
+    return ApplicationAnalysis.fromJson(resp.data as Map<String, dynamic>? ?? {});
   }
 }

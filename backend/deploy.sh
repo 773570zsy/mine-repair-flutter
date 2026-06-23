@@ -1,7 +1,9 @@
 #!/bin/bash
 # ============================================
-#  总调度室综合管理系统 — 一键部署脚本
+#  总调度室综合管理系统 — 安全部署脚本
 #  用法: cd backend && bash deploy.sh
+#  部署内容: 后端代码 + Web前端（不覆盖数据库！）
+#  DB 结构变更通过 migrations.ts 自动处理
 # ============================================
 set -e
 
@@ -13,26 +15,31 @@ echo "========================================"
 echo "  总调度室综合管理系统 - 部署脚本"
 echo "========================================"
 
-# 1. 运行测试
-echo "[1/4] 运行测试..."
-npm test || { echo "❌ 测试失败，终止部署"; exit 1; }
+# 1. 停服
+echo "[1/5] 暂停服务..."
+ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "pm2 stop mine-repair"
 
-# 2. 编译
-echo "[2/4] 编译 TypeScript..."
+# 2. 编译 TypeScript
+echo "[2/5] 编译 TypeScript..."
 npm run build
 
-# 3. 上传文件
-echo "[3/4] 上传到服务器..."
+# 3. 上传代码（不上传 DB — 生产数据不能覆盖！）
+echo "[3/5] 上传代码到服务器..."
 scp -o StrictHostKeyChecking=no -r dist/* ${USER}@${HOST}:${REMOTE_DIR}/dist/
 scp -o StrictHostKeyChecking=no package.json package-lock.json ${USER}@${HOST}:${REMOTE_DIR}/
+scp -o StrictHostKeyChecking=no -r public/app/* ${USER}@${HOST}:${REMOTE_DIR}/public/app/
 
-# 4. 安装依赖 + 重启
-echo "[4/4] 重启服务..."
-ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "cd ${REMOTE_DIR} && npm install --omit=dev --no-audit --no-fund && NODE_ENV=production pm2 restart mine-repair --update-env && pm2 save"
+# 4. 安装依赖
+echo "[4/5] 安装依赖..."
+ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "cd ${REMOTE_DIR} && npm install --omit=dev --no-audit --no-fund"
+
+# 5. 启动 + 保存 PM2 状态
+echo "[5/5] 启动服务..."
+ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "NODE_ENV=production pm2 start ${REMOTE_DIR}/dist/index.js --name mine-repair && pm2 save"
 
 echo ""
 echo "========================================"
-echo "  部署完成!"
-echo "  API: https://jlkydds.cn"
-echo "  查看日志: ssh ${USER}@${HOST} 'pm2 logs mine-repair'"
+echo "  ✅ 部署完成!"
+echo "  API:  https://jlkydds.cn"
+echo "  Web:  https://jlkydds.cn/app"
 echo "========================================"

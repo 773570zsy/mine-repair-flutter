@@ -32,7 +32,8 @@ router.get('/all-users', auth, asyncHandler(async (_req: Request, res: Response)
 // 早检提交（车辆检查项）
 router.post('/morning-check', auth, validate(morningCheckSchema), asyncHandler(async (req: Request, res: Response) => {
   const { vehicle_id, driver_id, oil_level, coolant_level, appearance, tire_condition,
-    toolkit_check, overall_status, abnormal_desc, notes, engine_hours, photos } = req.body;
+    toolkit_check, overall_status, abnormal_desc, notes, engine_hours, photos,
+    mental_state, ppe_wearing, blood_pressure_high, blood_pressure_low, start_hours, start_km } = req.body;
   const vid = vehicle_id;
   const did = driver_id || req.user.id;
 
@@ -45,11 +46,14 @@ router.post('/morning-check', auth, validate(morningCheckSchema), asyncHandler(a
   getDB().prepare(
     `INSERT INTO daily_inspections
      (vehicle_id, driver_id, inspection_date, oil_level, coolant_level, appearance,
-      tire_condition, toolkit_check, overall_status, abnormal_desc, notes, engine_hours, photos)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      tire_condition, toolkit_check, overall_status, abnormal_desc, notes, engine_hours, photos,
+      mental_state, ppe_wearing, blood_pressure_high, blood_pressure_low, start_hours, start_km)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(vid, did, today, oil_level || null, coolant_level || null,
     appearance || null, tire_condition || null, toolkit_check || null,
-    overall_status || 'normal', abnormal_desc || '', notes || '', engine_hours || 0, JSON.stringify(photos || []));
+    overall_status || 'normal', abnormal_desc || '', notes || '', engine_hours || 0, JSON.stringify(photos || []),
+    mental_state || '', ppe_wearing || '', blood_pressure_high || 0, blood_pressure_low || 0,
+    start_hours || 0, start_km || 0);
   res.json({ code: 200, msg: '早检提交成功' });
 }));
 
@@ -68,26 +72,32 @@ router.post('/evening-check', auth, validate(eveningCheckSchema), asyncHandler(a
 
   const today = dayjs().format('YYYY-MM-DD');
   const record = getDB().prepare(
-    'SELECT id FROM daily_inspections WHERE vehicle_id = ? AND driver_id = ? AND inspection_date = ?'
-  ).get(vid, did, today) as { id: number } | undefined;
+    'SELECT id, evening_check_count FROM daily_inspections WHERE vehicle_id = ? AND driver_id = ? AND inspection_date = ?'
+  ).get(vid, did, today) as { id: number; evening_check_count: number } | undefined;
 
   if (record) {
-    // 已有记录（含早检）→ 更新
+    // 晚检最多提交两次
+    if (record.evening_check_count >= 3) {
+      res.json({ code: 400, msg: '该车辆今日晚检已提交三次，不可再提交' }); return;
+    }
+    const newCount = record.evening_check_count + 1;
     getDB().prepare(
       `UPDATE daily_inspections SET start_hours = ?, end_hours = ?, fuel_amount = ?,
-       attendance_symbol = ?, parking_location = ?, start_km = ?, current_km = ?, photos = ?, updated_at = datetime('now')
+       attendance_symbol = ?, parking_location = ?, start_km = ?, current_km = ?, photos = ?,
+       evening_check_count = ?, updated_at = datetime('now')
        WHERE id = ?`
     ).run(start_hours || 0, end_hours || 0, fuel_amount || 0,
-      attendance_symbol || '', parking_location || '', start_km || 0, end_km || 0, JSON.stringify(photos || []), record.id);
+      attendance_symbol || '', parking_location || '', start_km || 0, end_km || 0, JSON.stringify(photos || []),
+      newCount, record.id);
   } else {
-    // 无早检 → 直接插入晚检记录
+    // 无早检 → 直接插入晚检记录（算第1次）
     getDB().prepare(
       `INSERT INTO daily_inspections
        (vehicle_id, driver_id, inspection_date, start_hours, end_hours, fuel_amount,
-        attendance_symbol, parking_location, start_km, current_km, photos, overall_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        attendance_symbol, parking_location, start_km, current_km, photos, overall_status, evening_check_count)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(vid, did, today, start_hours || 0, end_hours || 0, fuel_amount || 0,
-      attendance_symbol || '', parking_location || '', start_km || 0, end_km || 0, JSON.stringify(photos || []), 'normal');
+      attendance_symbol || '', parking_location || '', start_km || 0, end_km || 0, JSON.stringify(photos || []), 'normal', 1);
   }
 
   // 更新在编车辆档案的当前工时，并检查保养周期（西藏恒骏不参与）
@@ -367,11 +377,11 @@ router.get('/attendance/today', auth, asyncHandler(async (req: Request, res: Res
 
 // 提交考勤
 router.post('/attendance/submit', auth, validate(attendanceSubmitSchema), asyncHandler(async (req: Request, res: Response) => {
-  const { attendance_symbol, overtime_hours, overtime_start, overtime_end, overtime_location, vehicle_type, plate_number } = req.body;
-  const today = dayjs().format('YYYY-MM-DD');
-  const existing = getDB().prepare('SELECT * FROM driver_attendance WHERE driver_id = ? AND attendance_date = ?').get(req.user.id, today) as Record<string, unknown> | undefined;
-  if (existing && existing.attendance_symbol) {
-    res.json({ code: 400, msg: '今日考勤已提交，不可重复提交' }); return;
+  const { attendance_date, attendance_symbol, overtime_hours, overtime_start, overtime_end, overtime_location, vehicle_type, plate_number } = req.body;
+  const date = attendance_date || dayjs().format('YYYY-MM-DD');
+  const existing = getDB().prepare('SELECT * FROM driver_attendance WHERE driver_id = ? AND attendance_date = ?').get(req.user.id, date) as Record<string, unknown> | undefined;
+  if (existing && existing.attendance_symbol && attendance_symbol) {
+    res.json({ code: 400, msg: '该日期考勤已提交，不可重复提交' }); return;
   }
   let calcHours = Number(overtime_hours) || 0;
   if (overtime_start && overtime_end) {
@@ -382,14 +392,16 @@ router.post('/attendance/submit', auth, validate(attendanceSubmitSchema), asyncH
     calcHours = Math.round(calcHours * 10) / 10;
   }
   if (existing) {
+    // 加班提交不带考勤符号时，保留已有符号不被覆盖
+    const finalSymbol = attendance_symbol || existing.attendance_symbol || '';
     getDB().prepare(
       `UPDATE driver_attendance SET attendance_symbol = ?, overtime_hours = ?, overtime_start = ?, overtime_end = ?, overtime_location = ?, vehicle_type = ?, plate_number = ? WHERE id = ?`
-    ).run(attendance_symbol || '', calcHours, overtime_start || '', overtime_end || '', overtime_location || '', vehicle_type || '', plate_number || '', existing.id);
+    ).run(finalSymbol, calcHours, overtime_start || '', overtime_end || '', overtime_location || '', vehicle_type || '', plate_number || '', existing.id);
   } else {
     getDB().prepare(
       `INSERT INTO driver_attendance (driver_id, attendance_date, attendance_symbol, overtime_hours, overtime_start, overtime_end, overtime_location, vehicle_type, plate_number)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(req.user.id, today, attendance_symbol || '', calcHours, overtime_start || '', overtime_end || '', overtime_location || '', vehicle_type || '', plate_number || '');
+    ).run(req.user.id, date, attendance_symbol || '', calcHours, overtime_start || '', overtime_end || '', overtime_location || '', vehicle_type || '', plate_number || '');
   }
   res.json({ code: 200, msg: '提交成功', data: { overtime_hours: calcHours } });
 }));
@@ -553,6 +565,48 @@ router.post('/export-parts-xlsx', auth, requireRole('admin'), asyncHandler(async
     '状态':sm[String(x.status)]||x.status,'时间':String(x.created_at||'').slice(0,16),
   }));
   await sendExcel(res, '配件领用记录.xlsx', '领用记录', columns, rows);
+}));
+
+// 导出员工历史血压 Excel
+router.post('/export-blood-pressure-xlsx', auth, requireRole('admin', 'leader'), validate(exportAttendanceSchema), asyncHandler(async (req: Request, res: Response) => {
+  const { month, driver_id, department_id } = req.body;
+
+  let sql = `SELECT di.inspection_date, di.blood_pressure_high, di.blood_pressure_low,
+      di.mental_state, di.ppe_wearing, u.name as driver_name,
+      v.plate_number, v.vehicle_type
+    FROM daily_inspections di
+    JOIN users u ON di.driver_id = u.id
+    LEFT JOIN vehicles v ON di.vehicle_id = v.id
+    WHERE substr(di.inspection_date,1,7) = ?
+      AND di.blood_pressure_high > 0`;
+  const params: (string|number)[] = [String(month)];
+  if (driver_id) { sql += ' AND di.driver_id = ?'; params.push(Number(driver_id)); }
+  if (department_id) { sql += ' AND u.department_id = ?'; params.push(Number(department_id)); }
+  sql += ' ORDER BY u.name, di.inspection_date DESC';
+  const data = getDB().prepare(sql).all(...params) as Record<string,unknown>[];
+
+  const msLabel = (v: unknown) => v === 'abnormal' ? '不正常' : '正常';
+  const ppLabel = (v: unknown) => v === 'missing' ? '缺失' : '齐全';
+
+  const columns: ColumnDef[] = [
+    { header: '姓名', width: 14 }, { header: '日期', width: 12 },
+    { header: '车辆编号', width: 12 }, { header: '车型', width: 12 },
+    { header: '高压', width: 8 }, { header: '低压', width: 8 },
+    { header: '精神状态', width: 10 }, { header: '劳保用品', width: 10 },
+  ];
+  const rows = data.map(r => ({
+    '姓名': r.driver_name,
+    '日期': String(r.inspection_date || ''),
+    '车辆编号': r.plate_number || '-',
+    '车型': r.vehicle_type || '-',
+    '高压': Number(r.blood_pressure_high) || 0,
+    '低压': Number(r.blood_pressure_low) || 0,
+    '精神状态': msLabel(r.mental_state),
+    '劳保用品': ppLabel(r.ppe_wearing),
+  }));
+
+  const filename = '员工血压记录_' + month + '.xlsx';
+  await sendExcel(res, filename, month + '血压记录', columns, rows);
 }));
 
 export default router;

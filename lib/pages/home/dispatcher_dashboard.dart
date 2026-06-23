@@ -14,7 +14,14 @@ class DispatcherDashboard extends ConsumerWidget {
     final pendingAsync = ref.watch(machineryPendingListProvider);
     final allAsync = ref.watch(machineryAllApplicationsProvider(const {}));
 
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: AppColors.gold,
+      onRefresh: () async {
+        ref.invalidate(machineryPendingListProvider);
+        ref.invalidate(machineryAllApplicationsProvider);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // 统计
@@ -39,10 +46,14 @@ class DispatcherDashboard extends ConsumerWidget {
         ]),
         const SizedBox(height: 10),
         Row(children: [
+          Expanded(child: _navCard(Icons.analytics_outlined, '申请分析', '车型趋势+车辆排名', () => context.push('/machinery/application-analysis'))),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
           Expanded(child: _navCard(Icons.cloud_outlined, '天气预警', '矿区天气与预警', () => context.push('/weather'))),
         ]),
       ]),
-    );
+    ));
   }
 
   Widget _buildStats(AsyncValue<Map<String, dynamic>> pendingAsync, AsyncValue<List<dynamic>> allAsync) {

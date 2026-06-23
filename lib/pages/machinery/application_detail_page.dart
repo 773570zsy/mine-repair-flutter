@@ -66,6 +66,7 @@ class _ApplicationDetailPageState extends ConsumerState<ApplicationDetailPage> {
               _section('申请信息', [
                 _row('申请编号', '订单号：${app.applicationNo}'),
                 _row('申请部门', app.applicantDept),
+                _row('费供', app.feeProviderLabel),
                 _row('申请人', app.applicantName),
                 _row('联系电话', app.applicantPhone),
                 _row('申请类型', app.typeLabel),

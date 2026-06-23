@@ -14,6 +14,12 @@ export const morningCheckSchema = z.object({
   engine_hours: z.number().optional().default(0),
   photos: z.array(z.string()).optional().default([]),
   current_km: z.number().optional().default(0),
+  mental_state: z.string().optional().default(''),
+  ppe_wearing: z.string().optional().default(''),
+  blood_pressure_high: z.number().optional().default(0),
+  blood_pressure_low: z.number().optional().default(0),
+  start_hours: z.number().optional().default(0),
+  start_km: z.number().optional().default(0),
 });
 
 export const eveningCheckSchema = z.object({

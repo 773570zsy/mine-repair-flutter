@@ -170,6 +170,10 @@ CREATE TABLE IF NOT EXISTS daily_inspections (
   appearance TEXT DEFAULT '',
   tire_condition TEXT DEFAULT '',
   toolkit_check TEXT DEFAULT '',
+	  mental_state TEXT DEFAULT '',
+	  ppe_wearing TEXT DEFAULT '',
+	  blood_pressure_high INTEGER DEFAULT 0,
+	  blood_pressure_low INTEGER DEFAULT 0,
   overall_status TEXT DEFAULT 'normal',
   abnormal_desc TEXT DEFAULT '',
   notes TEXT DEFAULT '',
@@ -181,6 +185,7 @@ CREATE TABLE IF NOT EXISTS daily_inspections (
   parking_location TEXT DEFAULT '',
   start_km REAL DEFAULT 0,
   current_km REAL DEFAULT 0,
+  evening_check_count INTEGER DEFAULT 0,
   photos TEXT DEFAULT '[]',
   videos TEXT DEFAULT '[]',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -212,6 +217,14 @@ CREATE TABLE IF NOT EXISTS parts_requisitions (
   picked_up_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  device_type TEXT NOT NULL CHECK(device_type IN ('pc','mobile')),
+  jti TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS notifications (
@@ -350,6 +363,7 @@ CREATE TABLE IF NOT EXISTS machinery_applications (
   urgency TEXT DEFAULT 'normal' CHECK(urgency IN ('normal','urgent','emergency')),
   briefing_method TEXT DEFAULT '',
   briefing_files TEXT DEFAULT '[]',
+	  fee_provider TEXT DEFAULT '',
   status TEXT DEFAULT 'pending' CHECK(status IN ('pending','assigned','in_progress','completed','early_completed','cancelled')),
   assigned_vehicle_id INTEGER,
   assigned_driver_id INTEGER,

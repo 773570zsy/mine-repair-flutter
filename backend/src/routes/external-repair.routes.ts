@@ -10,6 +10,8 @@ import {
   externalProgressSchema,
   externalApproveSchema,
 } from '../schemas/external-repair.schemas';
+import { pushToUsers, pushToTag } from '../services/jpush.service';
+import { sendToUser, sendToRepairShop } from '../services/notification.service';
 
 const router = Router();
 
@@ -37,44 +39,60 @@ router.post('/report', auth, requireRole('applicant', 'driver', 'external_repair
   const deptId = department_id || req.user.department_id || 0;
 
   const orderNo = 'WX' + dayjs().format('YYYYMMDD') + String(Date.now()).slice(-4);
-  getDB().prepare(
+  const result = getDB().prepare(
     `INSERT INTO external_repair_orders (order_no, department_id, user_id, vehicle_name, fault_description, fault_images, status, repair_shop_id)
      VALUES (?, ?, ?, ?, ?, ?, 'pending_accept', ?)`
   ).run(orderNo, deptId, req.user.id, vehicle_name, fault_description, JSON.stringify(fault_images || []), repair_shop_id || null);
+  const orderId = result.lastInsertRowid as number;
 
-  // 通知：指定修理厂则只通知该厂用户，否则通知所有修理厂
+  // 通知：指定修理厂则只通知该厂用户，否则通知所有修理厂 + 极光推送
+  const content = `外部报修单${orderNo}：${vehicle_name} ${fault_description}`;
   if (repair_shop_id) {
-    const shopUsers = getDB().prepare("SELECT id FROM users WHERE role = 'repair_shop' AND repair_shop_id = ? AND status = 1").all(repair_shop_id) as Array<{ id: number }>;
+    const shopUsers = getDB().prepare("SELECT id, phone FROM users WHERE role = 'repair_shop' AND repair_shop_id = ? AND status = 1").all(repair_shop_id) as Array<{ id: number; phone: string }>;
+    const phones: string[] = [];
     for (const su of shopUsers) {
       try {
         getDB().prepare(
           `INSERT INTO notifications (user_id, type, title, content, order_id)
-           VALUES (?, 'new_order', '新外部报修单', ?, (SELECT id FROM external_repair_orders WHERE order_no = ?))`
-        ).run(su.id, `外部报修单${orderNo}：${vehicle_name} ${fault_description}`, orderNo);
+           VALUES (?, 'new_order', '新外部报修单', ?, ?)`
+        ).run(su.id, content, orderId);
+        if (su.phone) phones.push(su.phone);
       } catch { /* 通知非关键 */ }
     }
+    if (phones.length > 0) {
+      pushToUsers(phones, '新外部报修单', content);
+    }
   } else {
-    const shopUsers = getDB().prepare("SELECT id FROM users WHERE role = 'repair_shop' AND status = 1").all() as Array<{ id: number }>;
+    const shopUsers = getDB().prepare("SELECT id, phone FROM users WHERE role = 'repair_shop' AND status = 1").all() as Array<{ id: number; phone: string }>;
+    const phones: string[] = [];
     for (const su of shopUsers) {
       try {
         getDB().prepare(
           `INSERT INTO notifications (user_id, type, title, content, order_id)
-           VALUES (?, 'new_order', '新外部报修单', ?, (SELECT id FROM external_repair_orders WHERE order_no = ?))`
-        ).run(su.id, `外部报修单${orderNo}：${vehicle_name} ${fault_description}`, orderNo);
+           VALUES (?, 'new_order', '新外部报修单', ?, ?)`
+        ).run(su.id, content, orderId);
+        if (su.phone) phones.push(su.phone);
       } catch { /* 通知非关键 */ }
+    }
+    // 标签推送 + 别名推送双保险
+    pushToTag('role_repair_shop', '新外部报修单', content);
+    if (phones.length > 0) {
+      pushToUsers(phones, '新外部报修单', content);
     }
   }
 
-  // 通知管理员
-  const admins = getDB().prepare("SELECT id FROM users WHERE role IN ('admin','leader') AND status = 1").all() as Array<{ id: number }>;
+  // 通知管理员和领导
+  const admins = getDB().prepare("SELECT id, phone FROM users WHERE role IN ('admin','leader') AND status = 1").all() as Array<{ id: number; phone: string }>;
   for (const a of admins) {
     try {
       getDB().prepare(
         `INSERT INTO notifications (user_id, type, title, content)
          VALUES (?, 'new_order', '新外部报修单', ?)`
-      ).run(a.id, `外部报修单${orderNo}：${vehicle_name} ${fault_description}`);
+      ).run(a.id, content);
     } catch { /* 通知非关键 */ }
   }
+  pushToTag('role_admin', '新外部报修单', content);
+  pushToTag('role_leader', '新外部报修单', content);
 
   res.json({ code: 200, msg: '报修成功', data: { order_no: orderNo } });
 }));
@@ -149,13 +167,11 @@ router.post('/accept-order/:orderId', auth, requireRole('repair_shop'), validate
     "INSERT INTO external_repair_progress (order_id, user_id, action, content) VALUES (?, ?, 'accepted_order', '修理厂接单并提交报价')"
   ).run(req.params.orderId, req.user.id);
 
-  // 通知报修人审批报价
-  try {
-    getDB().prepare(
-      `INSERT INTO notifications (user_id, type, title, content)
-       VALUES (?, 'quote_pending', '外部报修报价待审批', ?)`
-    ).run(order.user_id, `外部报修单${order.order_no}已有报价¥${quote_amount}，请审批`);
-  } catch { /* 通知非关键 */ }
+  // 通知报修人审批报价（DB + JPush）
+  sendToUser(order.user_id as number, {
+    type: 'quote_pending', title: '外部报修报价待审批',
+    content: `外部报修单${order.order_no}已有报价¥${quote_amount}，请审批`,
+  });
 
   res.json({ code: 200, msg: '接单成功，已提交报修人审批' });
 }));
@@ -213,11 +229,11 @@ router.post('/complete/:orderId', auth, requireRole('repair_shop'), asyncHandler
     "INSERT INTO external_repair_progress (order_id, user_id, action, content) VALUES (?, ?, 'completed', '维修已完成，等待验收')"
   ).run(req.params.orderId, req.user.id);
 
-  // 通知报修人验收
-  getDB().prepare(
-    `INSERT INTO notifications (user_id, type, title, content)
-     VALUES (?, 'repair_completed', '车辆维修完成', ?)`
-  ).run(order.user_id, `外部报修单${order.order_no}已完工，请验收`);
+  // 通知报修人验收（DB + JPush）
+  sendToUser(order.user_id as number, {
+    type: 'repair_completed', title: '车辆维修完成',
+    content: `外部报修单${order.order_no}已完工，请验收`,
+  });
 
   res.json({ code: 200, msg: '已完工，待报修人验收' });
 }));
@@ -264,16 +280,11 @@ router.post('/approve/:orderId', auth, validate(externalApproveSchema), asyncHan
       "INSERT INTO external_repair_progress (order_id, user_id, action, content) VALUES (?, ?, 'approved', '审批通过')"
     ).run(req.params.orderId, req.user.id);
 
-    // 通知修理厂
-    const shopUsers = getDB().prepare('SELECT id FROM users WHERE role = ? AND repair_shop_id = ? AND status = 1').all('repair_shop', order.repair_shop_id) as Array<{ id: number }>;
-    for (const su of shopUsers) {
-      try {
-        getDB().prepare(
-          `INSERT INTO notifications (user_id, type, title, content)
-           VALUES (?, 'quote_approved', '外修报价已通过', ?)`
-        ).run(su.id, `外部报修单${order.order_no}报价已审批通过，请开始维修`);
-      } catch { /* 通知非关键 */ }
-    }
+    // 通知修理厂（DB + JPush）
+    sendToRepairShop(order.repair_shop_id as number, {
+      type: 'quote_approved', title: '外修报价已通过',
+      content: `外部报修单${order.order_no}报价已审批通过，请开始维修`,
+    });
     res.json({ code: 200, msg: '审批通过' });
   } else {
     getDB().prepare(
@@ -283,16 +294,11 @@ router.post('/approve/:orderId', auth, validate(externalApproveSchema), asyncHan
       "INSERT INTO external_repair_progress (order_id, user_id, action, content) VALUES (?, ?, 'rejected', ?)"
     ).run(req.params.orderId, req.user.id, '审批驳回：' + reject_reason);
 
-    // 通知修理厂
-    const shopUsers = getDB().prepare('SELECT id FROM users WHERE role = ? AND repair_shop_id = ? AND status = 1').all('repair_shop', order.repair_shop_id) as Array<{ id: number }>;
-    for (const su of shopUsers) {
-      try {
-        getDB().prepare(
-          `INSERT INTO notifications (user_id, type, title, content)
-           VALUES (?, 'quote_rejected', '外修报价被驳回', ?)`
-        ).run(su.id, `外部报修单${order.order_no}报价被驳回：${reject_reason}`);
-      } catch { /* 通知非关键 */ }
-    }
+    // 通知修理厂（DB + JPush）
+    sendToRepairShop(order.repair_shop_id as number, {
+      type: 'quote_rejected', title: '外修报价被驳回',
+      content: `外部报修单${order.order_no}报价被驳回：${reject_reason}`,
+    });
     res.json({ code: 200, msg: '已驳回' });
   }
 }));
@@ -307,6 +313,14 @@ router.post('/urgent/:orderId', auth, requireRole('leader', 'admin'), asyncHandl
   getDB().prepare(
     "INSERT INTO external_repair_progress (order_id, user_id, action, content) VALUES (?, ?, 'urgent', '标记为加急')"
   ).run(req.params.orderId, req.user.id);
+
+  // 通知修理厂（DB + JPush）
+  if (order.repair_shop_id) {
+    sendToRepairShop(order.repair_shop_id as number, {
+      type: 'urgent', title: '加急维修通知',
+      content: `外部报修单${order.order_no}已标记为加急维修，请优先处理`,
+    });
+  }
 
   res.json({ code: 200, msg: '已标记加急' });
 }));

@@ -117,13 +117,13 @@ router.post('/vehicles/unbind', auth, requireRole('admin', 'leader'), validate(v
 
 // ==================== 用户管理 ====================
 
-router.get('/users', auth, requireRole('admin', 'dispatcher'), asyncHandler(async (req: Request, res: Response) => {
 // 部门列表
 router.get('/departments', auth, requireRole('admin', 'leader'), asyncHandler(async (_req: Request, res: Response) => {
   const depts = getDB().prepare('SELECT id, name FROM departments WHERE status = 1 ORDER BY id').all();
   res.json({ code: 200, data: depts });
 }));
 
+router.get('/users', auth, requireRole('admin', 'dispatcher'), asyncHandler(async (req: Request, res: Response) => {
   const { role, keyword } = req.query;
   let sql = `SELECT u.id, u.name, u.phone, u.role, u.repair_shop_id, u.department_id, u.status, u.created_at,
     d.name as dept_name, rs.name as shop_name
@@ -615,6 +615,46 @@ router.post('/export-cost-xlsx', auth, requireRole('admin', 'leader'), validate(
     return { '工单号':o.order_no,'来源':o.source||'-','设备':o.vehicle_name||'-','部门':o.dept_name||'总调度室','修理厂':o.repair_shop_name||'-','配件费':Number(o.parts_cost)||0,'人工费':Number(o.labor_cost)||0,'工时费':Number(o.hours_cost)||0,'合计':Number(o.quote_amount)||0,'审批日期':String(o.approved_at||'').slice(0,10),'配件明细':parts };
   });
   await sendExcel(res, '维修费用报表.xlsx', '费用明细', columns, rows);
+}));
+
+// ==================== 上传文件清理 ====================
+
+import { cleanupOrphanUploads, collectReferencedFiles } from '../services/cleanup.service';
+
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+
+/**
+ * POST /api/admin/cleanup-uploads?dryRun=1
+ * 清理未被数据库引用的孤儿上传文件（预览/手动触发）
+ * 注：服务器每小时自动清理一次，无需手动操作
+ */
+router.post('/cleanup-uploads', auth, requireRole('admin'), asyncHandler(async (req: Request, res: Response) => {
+  const dryRun = req.query.dryRun === '1';
+
+  if (dryRun) {
+    if (!fs.existsSync(UPLOAD_DIR)) {
+      res.json({ code: 200, data: { dryRun: true, deleted: 0, freedBytes: 0, files: [] } });
+      return;
+    }
+    const allFiles = fs.readdirSync(UPLOAD_DIR).filter((f: string) => !f.startsWith('.'));
+    const refs = collectReferencedFiles();
+    const orphans: { name: string; size: number }[] = [];
+    let totalFreed = 0;
+    for (const file of allFiles) {
+      if (!refs.has(file)) {
+        const filePath = path.join(UPLOAD_DIR, file);
+        try {
+          const stat = fs.statSync(filePath);
+          if (stat.isFile()) { orphans.push({ name: file, size: stat.size }); totalFreed += stat.size; }
+        } catch { /* skip */ }
+      }
+    }
+    res.json({ code: 200, data: { dryRun: true, totalFiles: allFiles.length, referencedFiles: refs.size, deleted: orphans.length, freedBytes: totalFreed, files: orphans.slice(0, 100) } });
+    return;
+  }
+
+  const result = cleanupOrphanUploads();
+  res.json({ code: 200, data: { dryRun: false, ...result } });
 }));
 
 export default router;

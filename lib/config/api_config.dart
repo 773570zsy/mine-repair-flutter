@@ -1,10 +1,10 @@
 /// API 配置 - 根据环境切换
 class ApiConfig {
-  /// 本地开发
-  static const String baseUrl = 'http://localhost:3000';
-
   /// 生产服务器
-  // static const String baseUrl = 'https://jlkydds.cn';
+  static const String baseUrl = 'https://jlkydds.cn';
+
+  /// 本地开发
+  // static const String baseUrl = 'http://localhost:3000';
 
   /// API 前缀
   static const String apiPrefix = '/api';

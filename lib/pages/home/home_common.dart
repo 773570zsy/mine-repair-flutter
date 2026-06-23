@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/color_constants.dart';
@@ -329,8 +330,10 @@ class DashTab extends StatelessWidget {
 class DashTableRow extends StatelessWidget {
   final List<String> cells;
   final bool header;
+  final bool? highlightRow;
+  final Color? maintColor;
 
-  const DashTableRow(this.cells, {this.header = false, super.key});
+  const DashTableRow(this.cells, {this.header = false, this.highlightRow, this.maintColor, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -338,30 +341,126 @@ class DashTableRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.5))),
-        color: header ? AppColors.surface2 : null,
+        color: header ? AppColors.surface2 : (highlightRow == true ? AppColors.warning.withValues(alpha: 0.08) : null),
       ),
       child: Row(
-        children: cells.map((c) => Expanded(child: Text(c, style: TextStyle(
-          fontSize: 12,
-          color: header ? AppColors.text2 : AppColors.text,
-          fontWeight: header ? FontWeight.w600 : FontWeight.normal,
-        )))).toList(),
+        children: cells.asMap().entries.map((e) {
+          final i = e.key;
+          final c = e.value;
+          // 保养列(index=4)用独立颜色，其余列用默认
+          final textColor = i == 4 && maintColor != null ? maintColor
+              : header ? AppColors.text2
+              : AppColors.text;
+          return Expanded(child: Text(c, style: TextStyle(
+            fontSize: 12,
+            color: textColor,
+            fontWeight: header ? FontWeight.w600 : FontWeight.normal,
+          )));
+        }).toList(),
       ),
     );
   }
 }
 
-// ==================== 车辆表格（静态演示） ====================
+// ==================== 车辆状态总览（首辆展开 + 折叠跳转） ====================
 
 class VehicleTable extends StatelessWidget {
-  const VehicleTable({super.key});
+  final List<dynamic /*Vehicle*/ > vehicles;
+  final void Function(String route)? onNavigate; // 可选：直接传路由跳转
+
+  const VehicleTable({required this.vehicles, this.onNavigate, super.key});
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'normal':    return '正常';
+      case 'repairing': return '维修中';
+      case 'scrapped':  return '已报废';
+      default:          return status;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Column(children: [
+    final list = vehicles;
+    return Column(children: [
       DashTableRow(['内部编号', '类型', '型号', '工时', '保养', '状态'], header: true),
-      DashTableRow(['KM-TEST', '汽车吊', 'TEST', '0h', '610h', '正常']),
+
+      if (list.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Text('暂未绑定车辆', style: TextStyle(color: AppColors.text2, fontSize: 13)),
+        )
+      else ...[
+        // 第一辆车
+        _vehicleRow(list.first),
+
+        // 折叠的剩余车辆：只显示数量 + 跳转
+        if (list.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: InkWell(
+              onTap: () {
+                if (onNavigate != null) {
+                  onNavigate!('/vehicle-archive/list');
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface2.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.unfold_more, size: 16, color: AppColors.gold),
+                  const SizedBox(width: 6),
+                  Text(
+                    '查看全部 ${list.length} 辆车 →',
+                    style: const TextStyle(color: AppColors.gold, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+      ],
+
+      if (list.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: InkWell(
+            onTap: () {
+              if (onNavigate != null) onNavigate!('/vehicle-archive/list');
+            },
+            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              Text('在编车辆库 →', style: TextStyle(fontSize: 12, color: AppColors.gold.withValues(alpha: 0.8))),
+            ]),
+          ),
+        ),
     ]);
+  }
+
+  Widget _vehicleRow(dynamic v) {
+    final now = DateTime.now();
+    final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    // 工时：从 latestEndHours 取，如果没值显示 '-'
+    final hours = v.latestEndHours;
+    final hoursText = hours != null ? '${hours.toStringAsFixed(1)}h' : '-';
+    // 保养：计算下次保养剩余小时
+    String maintText = '-';
+    if (v.nextMaintenanceHours != null && v.latestEndHours != null) {
+      final remaining = v.nextMaintenanceHours! - v.latestEndHours!;
+      maintText = remaining <= 0 ? '⚠️到期' : '${remaining.toStringAsFixed(0)}h';
+    }
+    final maintColor = maintText.startsWith('⚠️') ? AppColors.danger : null;
+
+    return DashTableRow([
+      v.plateNumber ?? '-',
+      v.vehicleType ?? '-',
+      v.model ?? '-',
+      hoursText,
+      maintText,
+      _statusLabel(v.status ?? 'normal'),
+    ], highlightRow: maintText.startsWith('⚠️'), maintColor: maintColor);
   }
 }
 
@@ -424,22 +523,30 @@ class _AnimatedTitleState extends State<AnimatedTitle> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        RotationTransition(
-          turns: _ctrl,
-          child: Transform.scale(
-            scaleX: -1,
-            child: const Icon(Icons.sync, color: AppColors.gold, size: 20),
-          ),
+    final screenW = MediaQuery.of(context).size.width;
+    // 自适应字号：窄屏缩小
+    final fs = screenW < 360 ? 12.0 : screenW < 480 ? 14.0 : 16.0;
+    // 非Web平台用系统微软雅黑，避免 Flutter 默认字体渲染导致汉字笔画丢失
+    // Web端浏览器自带字体渲染，不需要指定
+    final ff = kIsWeb ? null : 'Microsoft YaHei';
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      RotationTransition(
+        turns: _ctrl,
+        child: Transform.scale(
+          scaleX: -1,
+          child: Icon(Icons.sync, color: AppColors.gold, size: fs * 1.25),
         ),
-        const SizedBox(width: 8),
-        const Text.rich(TextSpan(children: [
-          TextSpan(text: '总调度室', style: TextStyle(color: AppColors.gold, fontSize: 16, fontWeight: FontWeight.w700)),
-          TextSpan(text: '综合管理系统', style: TextStyle(color: AppColors.gold2, fontSize: 16, fontWeight: FontWeight.w600)),
-        ])),
-      ]),
-    );
+      ),
+      const SizedBox(width: 8),
+      Flexible(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text.rich(TextSpan(children: [
+            TextSpan(text: '总调度室', style: TextStyle(color: AppColors.gold, fontSize: fs, fontWeight: FontWeight.w700, fontFamily: ff)),
+            TextSpan(text: '综合管理系统', style: TextStyle(color: AppColors.gold2, fontSize: fs, fontWeight: FontWeight.w600, fontFamily: ff)),
+          ])),
+        ),
+      ),
+    ]);
   }
 }
