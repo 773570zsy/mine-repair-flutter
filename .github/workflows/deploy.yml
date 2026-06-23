@@ -30,12 +30,23 @@ jobs:
         working-directory: backend
         run: npm run build
 
+      - name: Backup database before deploy
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p /opt/mine-repair-app/backend/data/backups
+            cp /opt/mine-repair-app/backend/data/mine_repair.db /opt/mine-repair-app/backend/data/backups/mine_repair_$(date +%Y-%m-%dT%H-%M-%S).db
+
       - name: Deploy backend to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # ⚠️ 只上传 dist + package.json，绝不触碰 data/（数据库）
           source: "backend/dist/*,backend/package.json,backend/package-lock.json"
           target: "/opt/mine-repair-app/backend/"
           strip_components: 1
