@@ -4,10 +4,10 @@ const router = Router();
 
 // 版本配置（每次发版改这里）
 const APP_VERSION = {
-  versionCode: 3,
-  versionName: '1.0.3',
-  downloadUrl: 'https://jlkydds.cn/app/app-release.apk',
-  changelog: '- 修复更新弹窗重复弹出\n- 考勤+加班互不冲突\n- 晚检最多3次\n- 部门筛选修复',
+  versionCode: 4,
+  versionName: '1.0.4',
+  downloadUrl: 'https://jlkyzdds-1439779200.cos.ap-chengdu.myqcloud.com/%E7%9F%BF%E5%B1%B1%E7%BB%B4%E4%BF%AE_Android.apk',
+  changelog: '- 📊 申请分析：车型分布+趋势图+车辆排名\n- 🏷️ 用车申请新增费供（甲方/乙方）\n- 🩺 早检：精神状态+劳保用品+血压\n- ❤️ 员工历史血压导出\n- 📋 历史指派查看\n- 🐛 Web端中文显示修复',
   forceUpdate: false,
 };
 

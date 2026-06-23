@@ -35,16 +35,38 @@ class _UpdateDialogState extends State<UpdateDialog> {
   bool _downloading = false;
   double _progress = 0;
   String? _error;
+  String? _filePath;
+
+  @override
+  void initState() {
+    super.initState();
+    UpdateService().initDownloadCallback((progress, status) {
+      if (!mounted) return;
+      setState(() {
+        _progress = progress;
+        // status: 1=queued, 2=running, 3=completed, 4=failed, 5=canceled, 6=paused
+        if (status == 3) {
+          // Completed — install
+          if (_filePath != null) UpdateService().installApk(_filePath!);
+        } else if (status == 4) {
+          _error = '下载失败，请检查网络';
+          _downloading = false;
+        } else if (status == 5) {
+          _error = '下载已取消';
+          _downloading = false;
+        }
+      });
+    });
+  }
 
   Future<void> _downloadAndInstall() async {
-    setState(() { _downloading = true; _error = null; });
+    setState(() { _downloading = true; _error = null; _progress = 0; });
 
     try {
-      final path = await UpdateService().downloadApk(
+      _filePath = await UpdateService().downloadApk(
         widget.info.downloadUrl,
-        (p) => setState(() => _progress = p),
+        (p) {},
       );
-      await UpdateService().installApk(path);
     } catch (e) {
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
@@ -91,7 +113,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
               ),
               const SizedBox(height: 6),
               Text(
-                _progress > 0 ? '下载中 ${(_progress * 100).toStringAsFixed(0)}%' : '准备下载...',
+                _progress > 0 ? '后台下载中 ${(_progress * 100).toStringAsFixed(0)}%（可切到其他App）' : '准备下载...',
                 style: const TextStyle(color: AppColors.text2, fontSize: 12),
               ),
             ],

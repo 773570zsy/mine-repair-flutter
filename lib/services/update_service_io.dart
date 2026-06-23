@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,8 +13,8 @@ class UpdateService {
   factory UpdateService() => _instance;
   UpdateService._();
 
-  /// 防止重复检查
   bool _checking = false;
+  String? _downloadTaskId;
 
   late final Dio _dio = _createDio();
 
@@ -32,6 +33,15 @@ class UpdateService {
     return dio;
   }
 
+  /// 初始化下载回调
+  void initDownloadCallback(void Function(double progress, int status) onUpdate) {
+    FlutterDownloader.registerCallback((id, status, progress) {
+      if (id == _downloadTaskId) {
+        onUpdate(progress / 100.0, status);
+      }
+    });
+  }
+
   /// 检查一次（防止重复触发）
   Future<UpdateInfo?> checkOnce() async {
     if (_checking) return null;
@@ -43,7 +53,7 @@ class UpdateService {
     }
   }
 
-  /// 检查是否有新版本，返回 UpdateInfo 或 null
+  /// 检查是否有新版本
   Future<UpdateInfo?> checkUpdate() async {
     try {
       final response = await _dio.get('${ApiConfig.baseUrl}/api/app-version');
@@ -56,31 +66,36 @@ class UpdateService {
       if (remote.versionCode > localCode) return remote;
       return null;
     } catch (_) {
-      return null; // 网络异常静默跳过
+      return null;
     }
   }
 
-  /// 下载 APK，回调进度 0.0~1.0，返回文件路径
+  /// 后台下载 APK（使用系统 DownloadManager，息屏/切后台不中断）
   Future<String> downloadApk(
     String url,
     void Function(double progress) onProgress,
   ) async {
     final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/update.apk');
-    if (await file.exists()) await file.delete();
+    final savedDir = dir.path;
 
-    await _dio.download(
-      url,
-      file.path,
-      onReceiveProgress: (received, total) {
-        if (total > 0) onProgress(received / total);
-      },
+    // 清理旧文件
+    final oldFile = File('$savedDir/update.apk');
+    if (await oldFile.exists()) await oldFile.delete();
+
+    // 使用系统 DownloadManager 下载
+    final taskId = await FlutterDownloader.enqueue(
+      url: url,
+      savedDir: savedDir,
+      fileName: 'update.apk',
+      showNotification: true,
+      openFileFromNotification: false,
     );
-
-    return file.path;
+    _downloadTaskId = taskId;
+    onProgress(0.0);
+    return '$savedDir/update.apk';
   }
 
-  /// 打开 APK 触发系统安装
+  /// 安装 APK
   Future<void> installApk(String filePath) async {
     await OpenFilex.open(filePath, type: 'application/vnd.android.package-archive');
   }

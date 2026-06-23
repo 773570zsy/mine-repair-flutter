@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'config/routes.dart' show globalRouter;
@@ -19,6 +20,9 @@ void main() {
   FileSaver.init(saver.createFileSaver());
   PhotoSaver.init(ps.createPhotoSaver());
   DownloadService.instance.init(HttpClient.sharedDio);
+
+  // 初始化后台下载器
+  FlutterDownloader.initialize(debug: false);
 
   // 初始化本地通知服务（Web: 浏览器Notification API; Native: 存根）
   NotificationService().init();
