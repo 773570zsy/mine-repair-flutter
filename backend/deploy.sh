@@ -1,9 +1,9 @@
 #!/bin/bash
 # ============================================
-#  总调度室综合管理系统 — 安全部署脚本
+#  总调度室综合管理系统 — 一键部署脚本
 #  用法: cd backend && bash deploy.sh
-#  部署内容: 后端代码 + Web前端（不覆盖数据库！）
-#  DB 结构变更通过 migrations.ts 自动处理
+#  部署内容: 后端源码 + Web前端（不覆盖数据库！）
+#  TypeScript 编译在服务器端执行
 # ============================================
 set -e
 
@@ -15,27 +15,30 @@ echo "========================================"
 echo "  总调度室综合管理系统 - 部署脚本"
 echo "========================================"
 
-# 1. 停服
-echo "[1/5] 暂停服务..."
-ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "pm2 stop mine-repair"
+# 1. 上传源码
+echo "[1/4] 上传源码到服务器..."
+rsync -avz --delete --exclude 'node_modules' --exclude 'data' --exclude 'uploads' --exclude '.git' \
+  -e "ssh -o StrictHostKeyChecking=no" \
+  src/ package.json package-lock.json tsconfig.json \
+  ${USER}@${HOST}:${REMOTE_DIR}/
 
-# 2. 编译 TypeScript
-echo "[2/5] 编译 TypeScript..."
-npm run build
+# 2. 上传前端（如果已构建）
+if [ -d "../build/web" ]; then
+  echo "[2/4] 上传 Web 前端..."
+  ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "mkdir -p ${REMOTE_DIR}/public/app"
+  rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+    ../build/web/ ${USER}@${HOST}:${REMOTE_DIR}/public/app/
+else
+  echo "[2/4] 跳过前端（未构建，请先 flutter build web --debug）"
+fi
 
-# 3. 上传代码（不上传 DB — 生产数据不能覆盖！）
-echo "[3/5] 上传代码到服务器..."
-scp -o StrictHostKeyChecking=no -r dist/* ${USER}@${HOST}:${REMOTE_DIR}/dist/
-scp -o StrictHostKeyChecking=no package.json package-lock.json ${USER}@${HOST}:${REMOTE_DIR}/
-scp -o StrictHostKeyChecking=no -r public/app/* ${USER}@${HOST}:${REMOTE_DIR}/public/app/
+# 3. 服务器编译 + 安装依赖
+echo "[3/4] 服务器编译 TypeScript + 安装依赖..."
+ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "cd ${REMOTE_DIR} && npm install --omit=dev --no-audit --no-fund && npm install --save-dev typescript && npx tsc && echo 'Build OK'"
 
-# 4. 安装依赖
-echo "[4/5] 安装依赖..."
-ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "cd ${REMOTE_DIR} && npm install --omit=dev --no-audit --no-fund"
-
-# 5. 启动 + 保存 PM2 状态
-echo "[5/5] 启动服务..."
-ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "NODE_ENV=production pm2 start ${REMOTE_DIR}/dist/index.js --name mine-repair && pm2 save"
+# 4. 重启服务
+echo "[4/4] 重启服务..."
+ssh -o StrictHostKeyChecking=no ${USER}@${HOST} "NODE_ENV=production pm2 restart mine-repair --update-env && pm2 save"
 
 echo ""
 echo "========================================"
